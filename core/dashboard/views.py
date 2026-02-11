@@ -1,3 +1,9 @@
-from django.shortcuts import render
+from django.http import JsonResponse
+from accounts.decorators import admin_required
 
-# Create your views here.
+@admin_required
+def dashboard_summary(request):
+    return JsonResponse({
+        "status": "ok",
+        "message": "Dashboard connected"
+    })
