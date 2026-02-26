@@ -18,3 +18,5 @@ media/
 # OS
 .DS_Store
 
+# CSV
+students.csv
