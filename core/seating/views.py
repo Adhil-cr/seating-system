@@ -110,3 +110,61 @@ def view_seating(request):
         "exam_id": exam_id,
         "halls": halls_data
     })
+
+
+# PDF Export API
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle
+from io import BytesIO
+from exams.models import Exam
+
+@admin_required
+def export_pdf(request):
+    exam_id = request.GET.get("exam_id")
+
+    if not exam_id:
+        return JsonResponse({"error": "exam_id required"}, status=400)
+
+    allocation = SeatingAllocation.objects.filter(exam_id=exam_id).last()
+
+    if not allocation:
+        return JsonResponse({"error": "No seating generated"}, status=404)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    exam = Exam.objects.get(id=exam_id)
+
+    elements.append(Paragraph(f"Exam: {exam.name}", styles["Heading1"]))
+    elements.append(Paragraph(f"Date: {exam.date}", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student")
+
+    data = [["Hall", "Row", "Column", "Register No", "Name"]]
+
+    for seat in seats:
+        data.append([
+            seat.hall.name,
+            seat.row,
+            seat.column,
+            seat.student.register_no,
+            seat.student.name
+        ])
+
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+    ]))
+
+    elements.append(table)
+    doc.build(elements)
+
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type="application/pdf")
