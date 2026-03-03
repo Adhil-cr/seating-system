@@ -168,3 +168,45 @@ def export_pdf(request):
 
     buffer.seek(0)
     return HttpResponse(buffer, content_type="application/pdf")
+
+
+# Excel Export API
+from openpyxl import Workbook
+
+@admin_required
+def export_excel(request):
+    exam_id = request.GET.get("exam_id")
+
+    if not exam_id:
+        return JsonResponse({"error": "exam_id required"}, status=400)
+
+    allocation = SeatingAllocation.objects.filter(exam_id=exam_id).last()
+
+    if not allocation:
+        return JsonResponse({"error": "No seating generated"}, status=404)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Seating"
+
+    ws.append(["Hall", "Row", "Column", "Register No", "Name", "Department"])
+
+    seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student")
+
+    for seat in seats:
+        ws.append([
+            seat.hall.name,
+            seat.row,
+            seat.column,
+            seat.student.register_no,
+            seat.student.name,
+            seat.student.department
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = "attachment; filename=seating.xlsx"
+
+    wb.save(response)
+    return response
