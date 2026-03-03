@@ -52,3 +52,61 @@ def generate_seating(request):
         )
 
     return JsonResponse({"status": "seating generated"})
+
+
+# Day 5 : Create Seating View API
+
+
+from django.http import JsonResponse
+from accounts.decorators import admin_required
+from .models import SeatingAllocation, Seat
+
+
+@admin_required
+def view_seating(request):
+    exam_id = request.GET.get("exam_id")
+
+    if not exam_id:
+        return JsonResponse({"error": "exam_id required"}, status=400)
+
+    allocation = SeatingAllocation.objects.filter(exam_id=exam_id).last()
+
+    if not allocation:
+        return JsonResponse({"error": "No seating generated"}, status=404)
+
+    halls_data = {}
+
+    seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student")
+
+    # ✅ Department Filter
+    department_filter = request.GET.get("department")
+    if department_filter:
+        seats = seats.filter(student__department=department_filter)
+
+    # ✅ Subject Filter (based on Exam ↔ Subject relation)
+    subject_filter = request.GET.get("subject")
+    if subject_filter:
+        seats = seats.filter(allocation__exam__subjects__code=subject_filter)
+
+    for seat in seats:
+        hall_name = seat.hall.name
+
+        if hall_name not in halls_data:
+            halls_data[hall_name] = {
+                "rows": seat.hall.rows,
+                "columns": seat.hall.columns,
+                "seats": []
+            }
+
+        halls_data[hall_name]["seats"].append({
+            "row": seat.row,
+            "column": seat.column,
+            "register_no": seat.student.register_no,
+            "name": seat.student.name,
+            "department": seat.student.department
+        })
+
+    return JsonResponse({
+        "exam_id": exam_id,
+        "halls": halls_data
+    })
