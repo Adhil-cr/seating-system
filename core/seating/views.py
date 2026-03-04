@@ -1,14 +1,27 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from accounts.decorators import admin_required
 from students.models import Student
 from halls.models import Hall
-
-from django.views.decorators.csrf import csrf_exempt
-from .models import SeatingAllocation, Seat
 from exams.models import Exam
+from .models import SeatingAllocation, Seat
 from .allocator import simple_allocator
-import json
 
+import json
+from io import BytesIO
+
+# PDF
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+
+# Excel
+from openpyxl import Workbook
+
+
+# -------------------------
+# PREVIEW SEATING
+# -------------------------
 
 @admin_required
 def preview_seating(request):
@@ -24,19 +37,34 @@ def preview_seating(request):
     })
 
 
-
-
+# -------------------------
+# GENERATE SEATING
+# -------------------------
 
 @csrf_exempt
 @admin_required
 def generate_seating(request):
+
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
     data = json.loads(request.body)
     exam_id = data.get("exam_id")
 
+    if not exam_id:
+        return JsonResponse({"error": "exam_id required"}, status=400)
+
     exam = Exam.objects.get(id=exam_id)
+
+    # Prevent duplicate generation
+    if SeatingAllocation.objects.filter(exam=exam).exists():
+        return JsonResponse({"error": "Seating already generated for this exam"}, status=400)
+
+    total_students = Student.objects.count()
+    total_capacity = sum(h.capacity for h in Hall.objects.all())
+
+    if total_capacity < total_students:
+        return JsonResponse({"error": "Not enough seats available"}, status=400)
 
     allocation = SeatingAllocation.objects.create(exam=exam)
 
@@ -54,16 +82,13 @@ def generate_seating(request):
     return JsonResponse({"status": "seating generated"})
 
 
-# Day 5 : Create Seating View API
-
-
-from django.http import JsonResponse
-from accounts.decorators import admin_required
-from .models import SeatingAllocation, Seat
-
+# -------------------------
+# VIEW SEATING
+# -------------------------
 
 @admin_required
 def view_seating(request):
+
     exam_id = request.GET.get("exam_id")
 
     if not exam_id:
@@ -74,21 +99,22 @@ def view_seating(request):
     if not allocation:
         return JsonResponse({"error": "No seating generated"}, status=404)
 
-    halls_data = {}
-
     seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student")
 
-    # ✅ Department Filter
+    # Department filter
     department_filter = request.GET.get("department")
     if department_filter:
         seats = seats.filter(student__department=department_filter)
 
-    # ✅ Subject Filter (based on Exam ↔ Subject relation)
+    # Subject filter
     subject_filter = request.GET.get("subject")
     if subject_filter:
         seats = seats.filter(allocation__exam__subjects__code=subject_filter)
 
+    halls_data = {}
+
     for seat in seats:
+
         hall_name = seat.hall.name
 
         if hall_name not in halls_data:
@@ -112,17 +138,13 @@ def view_seating(request):
     })
 
 
-# PDF Export API
-from django.http import HttpResponse
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
-from io import BytesIO
-from exams.models import Exam
+# -------------------------
+# EXPORT PDF
+# -------------------------
 
 @admin_required
 def export_pdf(request):
+
     exam_id = request.GET.get("exam_id")
 
     if not exam_id:
@@ -133,12 +155,13 @@ def export_pdf(request):
     if not allocation:
         return JsonResponse({"error": "No seating generated"}, status=404)
 
+    exam = Exam.objects.get(id=exam_id)
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer)
-    elements = []
-    styles = getSampleStyleSheet()
 
-    exam = Exam.objects.get(id=exam_id)
+    styles = getSampleStyleSheet()
+    elements = []
 
     elements.append(Paragraph(f"Exam: {exam.name}", styles["Heading1"]))
     elements.append(Paragraph(f"Date: {exam.date}", styles["Normal"]))
@@ -158,23 +181,28 @@ def export_pdf(request):
         ])
 
     table = Table(data)
+
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
     ]))
 
     elements.append(table)
+
     doc.build(elements)
 
     buffer.seek(0)
+
     return HttpResponse(buffer, content_type="application/pdf")
 
 
-# Excel Export API
-from openpyxl import Workbook
+# -------------------------
+# EXPORT EXCEL
+# -------------------------
 
 @admin_required
 def export_excel(request):
+
     exam_id = request.GET.get("exam_id")
 
     if not exam_id:
@@ -206,7 +234,9 @@ def export_excel(request):
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
     response["Content-Disposition"] = "attachment; filename=seating.xlsx"
 
     wb.save(response)
+
     return response
