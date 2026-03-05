@@ -11,8 +11,8 @@ Purpose:
 
 import os
 import pandas as pd
-from data_processing.validators import validate_normalized_csv
 
+from algorithms.validators import validate_normalized_csv
 
 def normalize_and_sort_csv(input_file_path: str, output_file_path: str) -> None:
     if not os.path.exists(input_file_path):
