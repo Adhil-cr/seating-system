@@ -6,6 +6,8 @@ from halls.models import Hall
 from exams.models import Exam
 from .models import SeatingAllocation, Seat
 from .allocator import simple_allocator
+from .allocator_service import run_full_allocation_pipeline
+import pandas as pd
 
 import json
 from io import BytesIO
@@ -66,22 +68,47 @@ def generate_seating(request):
     if total_capacity < total_students:
         return JsonResponse({"error": "Not enough seats available"}, status=400)
 
+    # Create allocation record
     allocation = SeatingAllocation.objects.create(exam=exam)
 
-    seat_map = simple_allocator()
+    # -----------------------------
+    # STEP 1: Run full algorithm pipeline
+    # -----------------------------
+    csv_output = run_full_allocation_pipeline(exam)
 
-    for seat_data in seat_map:
+    # -----------------------------
+    # STEP 2: Read algorithm output
+    # -----------------------------
+    df = pd.read_csv(csv_output)
+
+    halls = list(Hall.objects.all())
+
+    # -----------------------------
+    # STEP 3: Convert to Django seats
+    # -----------------------------
+    for _, row in df.iterrows():
+
+        hall_index = int(row["hall_id"]) - 1
+        hall = halls[hall_index]
+
+        seat_number = int(row["seat_number"])
+
+        column_count = hall.columns
+
+        row_no = (seat_number - 1) // column_count + 1
+        column_no = (seat_number - 1) % column_count + 1
+
+        student = Student.objects.get(register_no=row["register_no"])
+
         Seat.objects.create(
             allocation=allocation,
-            hall=seat_data["hall"],
-            row=seat_data["row"],
-            column=seat_data["column"],
-            student=seat_data["student"]
+            hall=hall,
+            row=row_no,
+            column=column_no,
+            student=student
         )
 
-    return JsonResponse({"status": "seating generated"})
-
-
+    return JsonResponse({"status": "seating generated using algorithm"})
 # -------------------------
 # VIEW SEATING
 # -------------------------
