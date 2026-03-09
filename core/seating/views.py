@@ -8,6 +8,7 @@ from .models import SeatingAllocation, Seat
 from .allocator import simple_allocator
 from .allocator_service import run_full_allocation_pipeline
 import pandas as pd
+from django.db import transaction
 
 import json
 from io import BytesIO
@@ -45,6 +46,7 @@ def preview_seating(request):
 
 @csrf_exempt
 @admin_required
+@transaction.atomic
 def generate_seating(request):
 
     if request.method != "POST":
@@ -98,7 +100,10 @@ def generate_seating(request):
         row_no = (seat_number - 1) // column_count + 1
         column_no = (seat_number - 1) % column_count + 1
 
-        student = Student.objects.get(register_no=row["register_no"])
+        student = Student.objects.filter(register_no=row["register_no"]).first()
+
+        if not student:
+            raise ValueError(f"Student not found: {row['register_no']}")
 
         Seat.objects.create(
             allocation=allocation,
