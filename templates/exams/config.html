@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Config</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="../static/css/main.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<script src="../static/js/hall.js"></script>
+
+<div class="app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+<div class="logo">
+<i data-lucide="graduation-cap"></i>
+<span>Seating System</span>
+</div>
+
+<div class="menu-section">
+
+<p class="menu-title">MAIN</p>
+
+<a class="menu-item" data-page="dashboard" href="../dashboard/dashboard.html">
+<i data-lucide="bar-chart-3"></i>
+Dashboard
+</a>
+
+</div>
+
+
+<div class="menu-section">
+
+<p class="menu-title">STUDENT MANAGEMENT</p>
+
+<a class="menu-item" data-page="students" href="../students/upload.html">
+<i data-lucide="upload"></i>
+Upload Students
+</a>
+
+</div>
+
+
+<div class="menu-section">
+
+<p class="menu-title">EXAM MANAGEMENT</p>
+
+<a class="menu-item" data-page="config" href="../exams/config.html">
+<i data-lucide="building"></i>
+Exam & Hall Config
+</a>
+
+<a class="menu-item" data-page="generate" href="../seating/generate.html">
+<i data-lucide="settings"></i>
+Generate Seating
+</a>
+
+<a class="menu-item" data-page="viewer" href="../seating/view.html">
+<i data-lucide="eye"></i>
+View Seating
+</a>
+
+</div>
+
+
+<div class="menu-section">
+
+<p class="menu-title">ACCOUNT</p>
+
+<a class="menu-item profile" data-page="profile" href="../profile/profile.html">
+<i data-lucide="user"></i>
+User Profile
+</a>
+
+</div>
+
+</aside>
+
+
+    <!-- Main Section -->
+    <div class="main">
+
+        <!-- Header -->
+        <header class="header">
+
+            <div class="header-left">
+                <h3>College Exam Seating Allocation System</h3>
+            </div>
+
+            <div class="header-right">
+                <span class="user-name">Admin User</span>
+            </div>
+
+        </header>
+
+
+        <!-- Page Content -->
+        <main class="content">
+
+            <h2>Exam & Hall Configuration</h2>
+
+            <div class="config-container">
+
+                <!-- Exam Section -->
+                <div class="config-card">
+
+                        <h3>Create Exam</h3>
+
+                        <div class="form-row">
+
+                            <div>
+                            <label>Exam Name</label>
+                            <input type="text" placeholder="Mid Semester Exam">
+                            </div>
+
+                            <div>
+                            <label>Exam Date</label>
+                            <input type="date">
+                            </div>
+
+                            <div>
+                            <label>Subjects</label>
+                            <input type="text" placeholder="Maths, Physics, Chemistry">
+                            </div>
+
+                            <button class="btn-primary">
+                            Save Exam
+                            </button>
+
+                        </div>
+
+                </div>
+
+
+                <!-- Hall Section -->
+                <div class="config-card">
+
+                    <h3>Add Hall</h3>
+
+                    <div class="form-row">
+
+                    <div>
+                    <label>Hall Name</label>
+                    <input type="text" placeholder="Hall A">
+                    </div>
+
+                    <div>
+                    <label>Rows</label>
+                    <input type="number" id="rows">
+                    </div>
+
+                    <div>
+                    <label>Columns</label>
+                    <input type="number" id="cols">
+                    </div>
+
+                    <div>
+                    <label>Seats per Bench</label>
+                    <select id="seatsPerBench">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    </select>
+                    </div>
+
+                    </div>
+
+                    <p class="capacity-text">
+                    Total Capacity: <strong id="capacity">0</strong>
+                    </p>
+
+                    <div class="button-group">
+                    <button class="btn-secondary">Add Hall</button>
+                    <button class="btn-primary">Save Halls</button>
+                    </div>
+
+                    </div>
+        </main>
+
+    </div>
+
+</div>
+
+<!-- JS -->
+<script src="../static/js/hall.js"></script>
+<script src="../static/js/app.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+});
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>View Seating</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="../static/css/main.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- Sidebar -->
+   <aside class="sidebar">
+
+<div class="logo">
+<i data-lucide="graduation-cap"></i>
+<span>Seating System</span>
+</div>
+
+<div class="menu-section">
+
+<p class="menu-title">MAIN</p>
+
+<a class="menu-item" data-page="dashboard" href="../dashboard/dashboard.html">
+<i data-lucide="bar-chart-3"></i>
+Dashboard
+</a>
+
+</div>
+
+
+<div class="menu-section">
+
+<p class="menu-title">STUDENT MANAGEMENT</p>
+
+<a class="menu-item" data-page="students" href="../students/upload.html">
+<i data-lucide="upload"></i>
+Upload Students
+</a>
+
+</div>
+
+
+<div class="menu-section">
+
+<p class="menu-title">EXAM MANAGEMENT</p>
+
+<a class="menu-item" data-page="config" href="../exams/config.html">
+<i data-lucide="building"></i>
+Exam & Hall Config
+</a>
+
+<a class="menu-item" data-page="generate" href="../seating/generate.html">
+<i data-lucide="settings"></i>
+Generate Seating
+</a>
+
+<a class="menu-item" data-page="viewer" href="../seating/view.html">
+<i data-lucide="eye"></i>
+View Seating
+</a>
+
+</div>
+
+
+<div class="menu-section">
+
+<p class="menu-title">ACCOUNT</p>
+
+<a class="menu-item profile" data-page="profile" href="../profile/profile.html">
+<i data-lucide="user"></i>
+User Profile
+</a>
+
+</div>
+
+</aside>
+
+    <!-- Main Section -->
+    <div class="main">
+
+        <!-- Header -->
+        <header class="header">
+
+            <div class="header-left">
+                <h3>College Exam Seating Allocation System</h3>
+            </div>
+
+            <div class="header-right">
+                <span class="user-name">Admin User</span>
+            </div>
+
+        </header>
+
+
+        <!-- Content -->
+        <main class="content">
+
+            <div class="viewer-card">
+
+                <div class="viewer-header">
+
+                    <h2>Seating Viewer</h2>
+
+                    <div class="viewer-actions">
+                        <button class="btn-secondary">Export PDF</button>
+                        <button class="btn-secondary">Export Excel</button>
+                        <button class="btn-primary">Print</button>
+                    </div>
+
+                </div>
+
+                <!-- Hall Tabs -->
+                <div class="hall-tabs">
+                    <button class="tab active">Hall A</button>
+                    <button class="tab">Hall B</button>
+                    <button class="tab">Hall C</button>
+                </div>
+
+                <!-- Subject Legend -->
+                <div class="legend">
+
+                    <div class="legend-item">
+                        <span class="legend-color math"></span> Maths
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="legend-color physics"></span> Physics
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="legend-color chem"></span> Chemistry
+                    </div>
+
+                </div>
+
+                <!-- Seating Grid -->
+                <div class="seating-grid" id="seatingGrid"></div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<!-- JS -->
+<script src="../static/js/app.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+});
+</script>
+
+</body>
+</html>
