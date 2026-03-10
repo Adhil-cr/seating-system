@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 
@@ -5,7 +6,7 @@
     <title>Generate Seating</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="../static/css/main.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -142,7 +143,7 @@ Generate Seating
 
 
 <!-- JS -->
-<script src="../static/js/app.js"></script>
+<script src="{% static 'js/app.js' %}"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
