@@ -11,23 +11,28 @@
         <h2>Welcome Back</h2>
         <p class="auth-subtitle">Sign in</p>
 
-        <form>
+        <form method="post" action="{% url 'signup' %}">
+            {% csrf_token %}
            <label>Full Name</label>
-            <input type="text">
+            <input type="text" name="full_name" required>
 
             <label>Email</label>
-            <input type="email">
+            <input type="email" name="email" required>
 
             <label>Password</label>
-            <input type="password">
+            <input type="password" name="password" required>
 
             <label>Confirm Password</label>
-            <input type="password">
+            <input type="password" name="password_confirm" required>
 
             <button class="btn-primary full-width">
                 Create Account
             </button>
         </form>
+
+        {% if error %}
+        <p class="auth-error">{{ error }}</p>
+        {% endif %}
 
        
 
