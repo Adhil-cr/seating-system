@@ -9,6 +9,14 @@ from accounts.decorators import admin_required
 from .models import Exam
 from students.models import Subject
 
+@admin_required
+def list_exams(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "GET required"}, status=405)
+
+    exams = list(Exam.objects.values("id", "name"))
+    return JsonResponse(exams, safe=False)
+
 @csrf_exempt
 @admin_required
 def create_exam(request):

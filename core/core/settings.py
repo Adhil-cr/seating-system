@@ -17,6 +17,7 @@ import os
 load_dotenv()
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # CORE_DIR -> /.../seating-system/core
 # PROJECT_DIR -> /.../seating-system
