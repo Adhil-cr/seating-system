@@ -1,19 +1,27 @@
-const rowsInput = document.getElementById("rows");
-const colsInput = document.getElementById("cols");
-const seatsBench = document.getElementById("seatsPerBench");
-const capacityDisplay = document.getElementById("capacity");
+document.addEventListener("DOMContentLoaded", function () {
 
-function calculateCapacity() {
+    const capacityDisplay = document.getElementById("capacity");
+    const hallList = document.getElementById("hall-list");
 
-    const rows = parseInt(rowsInput.value) || 0;
-    const cols = parseInt(colsInput.value) || 0;
-    const seats = parseInt(seatsBench.value) || 0;
+    if (!capacityDisplay || !hallList) return;
 
-    const total = rows * cols * seats;
+    function calculateCapacity() {
 
-    capacityDisplay.innerText = total;
-}
+        let total = 0;
+        const halls = hallList.querySelectorAll(".hall-form");
 
-rowsInput.addEventListener("input", calculateCapacity);
-colsInput.addEventListener("input", calculateCapacity);
-seatsBench.addEventListener("change", calculateCapacity);
+        halls.forEach(form => {
+            const rows = parseInt(form.querySelector(".hall-rows")?.value, 10) || 0;
+            const cols = parseInt(form.querySelector(".hall-columns")?.value, 10) || 0;
+            const seats = parseInt(form.querySelector(".hall-seats-per-bench")?.value, 10) || 0;
+            total += rows * cols * seats;
+        });
+
+        capacityDisplay.innerText = total;
+    }
+
+    hallList.addEventListener("input", calculateCapacity);
+    hallList.addEventListener("change", calculateCapacity);
+
+    calculateCapacity();
+});

@@ -14,8 +14,6 @@
 
 <body>
 
-<script src="{% static 'js/hall.js' %}"></script>
-
 <div class="app">
 
     <!-- Sidebar -->
@@ -146,32 +144,37 @@ User Profile
 
                     <h3>Add Hall</h3>
 
-                    <div class="form-row">
+                    <div id="hall-list">
+                    <div class="hall-item">
+                    <div class="hall-item-title">Hall 1</div>
+                    <div class="form-row hall-form">
 
-                    <div>
-                    <label>Hall Name</label>
-                    <input type="text" placeholder="Hall A">
+                            <div>
+                            <label>Hall Name</label>
+                            <input type="text" id="hall-name" class="hall-name" placeholder="Hall A">
+                            </div>
+
+                            <div>
+                            <label>Rows</label>
+                            <input type="number" id="hall-rows" class="hall-rows">
+                            </div>
+
+                            <div>
+                            <label>Columns</label>
+                            <input type="number" id="hall-columns" class="hall-columns">
+                            </div>
+
+                            <div>
+                            <label>Seats per Bench</label>
+                            <select id="seats-per-bench" class="hall-seats-per-bench">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            </select>
                     </div>
 
-                    <div>
-                    <label>Rows</label>
-                    <input type="number" id="rows">
                     </div>
-
-                    <div>
-                    <label>Columns</label>
-                    <input type="number" id="cols">
                     </div>
-
-                    <div>
-                    <label>Seats per Bench</label>
-                    <select id="seatsPerBench">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    </select>
-                    </div>
-
                     </div>
 
                     <p class="capacity-text">
@@ -179,8 +182,8 @@ User Profile
                     </p>
 
                     <div class="button-group">
-                    <button class="btn-secondary">Add Hall</button>
-                    <button class="btn-primary">Save Halls</button>
+                    <button id="save-hall-btn" class="btn-secondary">Add Hall</button>
+                    <button id="save-halls-btn" class="btn-primary">Save Halls</button>
                     </div>
 
                     </div>
@@ -194,6 +197,7 @@ User Profile
 <script src="{% static 'js/hall.js' %}"></script>
 <script src="{% static 'js/app.js' %}"></script>
 <script src="{% static 'js/exams_config.js' %}"></script>
+<script src="{% static 'js/halls_config.js' %}"></script>
 
 </body>
 </html>
