@@ -119,20 +119,20 @@ User Profile
 
                             <div>
                             <label>Exam Name</label>
-                            <input type="text" placeholder="Mid Semester Exam">
+                            <input type="text" id="exam-name" placeholder="Mid Semester Exam">
                             </div>
 
                             <div>
                             <label>Exam Date</label>
-                            <input type="date">
+                            <input type="date" id="exam-date">
                             </div>
 
                             <div>
                             <label>Subjects</label>
-                            <input type="text" placeholder="Maths, Physics, Chemistry">
+                            <input type="text" id="subject-codes" placeholder="Maths, Physics, Chemistry">
                             </div>
 
-                            <button class="btn-primary">
+                            <button id="save-exam-btn" class="btn-primary">
                             Save Exam
                             </button>
 
@@ -193,6 +193,7 @@ User Profile
 <!-- JS -->
 <script src="{% static 'js/hall.js' %}"></script>
 <script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'js/exams_config.js' %}"></script>
 
 </body>
 </html>
