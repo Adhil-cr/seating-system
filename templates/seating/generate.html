@@ -108,7 +108,7 @@ User Profile
 
 <div class="exam-row">
 <label>Select Exam</label>
-<select>
+<select id="exam-select">
 <option>Mid Semester Exam</option>
 <option>Internal Exam 1</option>
 </select>
@@ -130,7 +130,7 @@ User Profile
 <p>Total Available Seats: <strong>1350</strong></p>
 </div>
 
-<button class="btn-primary generate-btn">
+<button id="generate-btn" class="btn-primary generate-btn">
 Generate Seating
 </button>
 
@@ -144,14 +144,7 @@ Generate Seating
 
 <!-- JS -->
 <script src="{% static 'js/app.js' %}"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    if (window.lucide) {
-        lucide.createIcons();
-    }
-});
-</script>
+<script src="{% static 'js/seating_generate.js' %}"></script>
 
 </body>
 </html>
