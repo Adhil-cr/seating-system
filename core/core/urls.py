@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.urls import path, include
+from . import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,5 +27,13 @@ urlpatterns = [
     path("api/exams/", include("exams.urls")),
     path("api/halls/", include("halls.urls")),
     path("api/seating/", include("seating.urls")),
-]
 
+    path('', views.login_page, name="login"),
+    path('signup/', views.signup_page, name="signup"),
+    path('dashboard/', views.dashboard_page, name="dashboard"),
+    path('students/upload/', views.upload_students_page, name="students_upload"),
+    path('exams/config/', views.exam_config_page, name="exam_config"),
+    path('seating/generate/', views.seating_generate_page, name="seating_generate"),
+    path('seating/view/', views.seating_view_page, name="seating_view"),
+    path('profile/', views.profile_page, name="profile"),
+]

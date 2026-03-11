@@ -18,7 +18,11 @@ load_dotenv()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# CORE_DIR -> /.../seating-system/core
+# PROJECT_DIR -> /.../seating-system
+CORE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_DIR = CORE_DIR.parent
+BASE_DIR = CORE_DIR
 
 
 # Quick-start development settings - unsuitable for production
@@ -62,13 +66,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'core.urls'
 
-from pathlib import Path
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 TEMPLATES = [
 {
     'BACKEND': 'django.template.backends.django.DjangoTemplates',
-    'DIRS': [BASE_DIR / "templates"],  # points to your templates folder
+    'DIRS': [PROJECT_DIR / "templates"],  # points to your templates folder
     'APP_DIRS': True,
     'OPTIONS': {
         'context_processors': [
@@ -151,5 +152,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    PROJECT_DIR / "static",
 ]
