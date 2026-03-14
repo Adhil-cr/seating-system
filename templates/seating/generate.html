@@ -28,7 +28,7 @@
 
 <p class="menu-title">MAIN</p>
 
-<a class="menu-item" data-page="dashboard" href="../dashboard/dashboard.html">
+<a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
 <i data-lucide="bar-chart-3"></i>
 Dashboard
 </a>
@@ -40,7 +40,7 @@ Dashboard
 
 <p class="menu-title">STUDENT MANAGEMENT</p>
 
-<a class="menu-item" data-page="students" href="../students/upload.html">
+<a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
 <i data-lucide="upload"></i>
 Upload Students
 </a>
@@ -52,17 +52,17 @@ Upload Students
 
 <p class="menu-title">EXAM MANAGEMENT</p>
 
-<a class="menu-item" data-page="config" href="../exams/config.html">
+<a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
 <i data-lucide="building"></i>
 Exam & Hall Config
 </a>
 
-<a class="menu-item" data-page="generate" href="../seating/generate.html">
+<a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
 <i data-lucide="settings"></i>
 Generate Seating
 </a>
 
-<a class="menu-item" data-page="viewer" href="../seating/view.html">
+<a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
 <i data-lucide="eye"></i>
 View Seating
 </a>
@@ -74,7 +74,7 @@ View Seating
 
 <p class="menu-title">ACCOUNT</p>
 
-<a class="menu-item profile" data-page="profile" href="../profile/profile.html">
+<a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
 <i data-lucide="user"></i>
 User Profile
 </a>
@@ -93,7 +93,11 @@ User Profile
             </div>
 
             <div class="header-right">
-                <span class="user-name">Admin User</span>
+                {% if request.user.is_authenticated %}
+                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                {% else %}
+                    <span class="user-name">Guest</span>
+                {% endif %}
             </div>
 
         </header>
@@ -106,35 +110,28 @@ User Profile
 
             <div class="generate-card">
 
-<div class="exam-row">
-<label>Select Exam</label>
-<select id="exam-select">
-<option>Mid Semester Exam</option>
-<option>Internal Exam 1</option>
-</select>
-</div>
+                <div class="exam-row">
+                    <label>Select Exam</label>
+                    <select id="exam-select"></select>
+                </div>
 
-<div>
-<label>Select Halls</label>
+                <div>
+                    <label>Select Halls</label>
+                    <div id="hall-list" class="hall-list"></div>
+                </div>
 
-<div class="hall-list">
-<label><input type="checkbox"> Hall A</label>
-<label><input type="checkbox"> Hall B</label>
-<label><input type="checkbox"> Hall C</label>
-</div>
+                <div id="student-count" class="capacity-text">Total Students: 0</div>
 
-</div>
+                <div class="summary-box">
+                    <p>Total Students: <strong id="total-students">0</strong></p>
+                    <p>Total Available Seats: <strong id="total-seats">0</strong></p>
+                </div>
 
-<div class="summary-box">
-<p>Total Students: <strong>1200</strong></p>
-<p>Total Available Seats: <strong>1350</strong></p>
-</div>
+                <button id="generate-btn" class="btn-primary generate-btn">
+                    Generate Seating
+                </button>
 
-<button id="generate-btn" class="btn-primary generate-btn">
-Generate Seating
-</button>
-
-</div>
+            </div>
         </main>
 
     </div>

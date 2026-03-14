@@ -32,7 +32,7 @@
 
 <p class="menu-title">MAIN</p>
 
-<a class="menu-item" data-page="dashboard" href="../dashboard/dashboard.html">
+<a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
 <i data-lucide="bar-chart-3"></i>
 Dashboard
 </a>
@@ -44,7 +44,7 @@ Dashboard
 
 <p class="menu-title">STUDENT MANAGEMENT</p>
 
-<a class="menu-item" data-page="students" href="../students/upload.html">
+<a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
 <i data-lucide="upload"></i>
 Upload Students
 </a>
@@ -56,17 +56,17 @@ Upload Students
 
 <p class="menu-title">EXAM MANAGEMENT</p>
 
-<a class="menu-item" data-page="config" href="../exams/config.html">
+<a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
 <i data-lucide="building"></i>
 Exam & Hall Config
 </a>
 
-<a class="menu-item" data-page="generate" href="../seating/generate.html">
+<a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
 <i data-lucide="settings"></i>
 Generate Seating
 </a>
 
-<a class="menu-item" data-page="viewer" href="../seating/view.html">
+<a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
 <i data-lucide="eye"></i>
 View Seating
 </a>
@@ -78,7 +78,7 @@ View Seating
 
 <p class="menu-title">ACCOUNT</p>
 
-<a class="menu-item profile" data-page="profile" href="../profile/profile.html">
+<a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
 <i data-lucide="user"></i>
 User Profile
 </a>
@@ -98,7 +98,11 @@ User Profile
             </div>
 
             <div class="header-right">
-                <span class="user-name">Admin User</span>
+                {% if request.user.is_authenticated %}
+                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                {% else %}
+                    <span class="user-name">Guest</span>
+                {% endif %}
             </div>
 
         </header>
@@ -112,35 +116,39 @@ User Profile
 
                 <div class="dashboard-card">
                     <h3>Total Students</h3>
-                    <p class="card-number">1250</p>
+                    <p class="card-number">{{ total_students }}</p>
                 </div>
 
                 <div class="dashboard-card">
                     <h3>Total Halls</h3>
-                    <p class="card-number">25</p>
+                    <p class="card-number">{{ total_halls }}</p>
                 </div>
 
                 <div class="dashboard-card">
                     <h3>Pending Allocations</h3>
-                    <p class="card-number">3</p>
+                    <p class="card-number">{{ pending_allocations }}</p>
                 </div>
 
                 <div class="dashboard-card">
                     <h3>Last Seating Status</h3>
-                    <p class="card-status success">Generated</p>
+                    <p class="card-status {{ last_status_class }}">{{ last_status }}</p>
                 </div>
 
             </div>
 
             <h3 class="section-title">System Alerts</h3>
 
-            <div class="alert warning">
-                ⚠ Hall capacity is less than total students for upcoming exam.
-            </div>
-
-            <div class="alert error">
-                ❌ Some students are missing subject mapping.
-            </div>
+            {% if alerts %}
+                {% for alert in alerts %}
+                    <div class="alert {{ alert.level }}">
+                        {{ alert.message }}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert success">
+                    No alerts.
+                </div>
+            {% endif %}
 
         </main>
 

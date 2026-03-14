@@ -5,11 +5,30 @@ from django.shortcuts import render
 import json
 from json import JSONDecodeError
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from accounts.decorators import admin_required
 from .models import Hall
 
-@csrf_exempt
+
+@admin_required
+def list_halls(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "GET required"}, status=405)
+
+    halls = Hall.objects.filter(user=request.user).order_by("name")
+    data = []
+    for hall in halls:
+        data.append({
+            "id": hall.id,
+            "name": hall.name,
+            "rows": hall.rows,
+            "columns": hall.columns,
+            "seats_per_bench": hall.seats_per_bench,
+            "capacity": hall.capacity
+        })
+
+    return JsonResponse(data, safe=False)
+
+
 @admin_required
 def create_hall(request):
     if request.method != "POST":
@@ -39,6 +58,7 @@ def create_hall(request):
         return JsonResponse({"error": "rows, columns, seats_per_bench must be positive"}, status=400)
 
     hall = Hall.objects.create(
+        user=request.user,
         name=name,
         rows=rows,
         columns=columns,

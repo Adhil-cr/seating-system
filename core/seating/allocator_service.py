@@ -12,7 +12,7 @@ from halls.models import Hall
 from students.models import Student
 
 
-def run_full_allocation_pipeline(exam):
+def run_full_allocation_pipeline(exam, halls=None):
 
     base_dir = settings.BASE_DIR
 
@@ -28,24 +28,65 @@ def run_full_allocation_pipeline(exam):
     # --------------------------------
     # STEP 1: Export students from DB
     # --------------------------------
+    subject_codes = list(getattr(exam, "subject_codes", []) or [])
+    if not subject_codes:
+        subject_codes = list(
+            exam.subjects.values_list("code", flat=True)
+        )
+    subject_codes = [str(code).strip().replace(".0", "") for code in subject_codes if str(code).strip()]
 
-    students = Student.objects.all().values(
-        "register_no",
-        "name",
-        "department"
-    )
+    if not subject_codes:
+        raise ValueError("No subject codes configured for this exam.")
 
-    df = pd.DataFrame(list(students))
+    students_qs = Student.objects.filter(
+        user=exam.user,
+        subjects__code__in=subject_codes
+    ).distinct().prefetch_related("subjects")
 
-    df.rename(columns={
-        "name": "Student Name",
-        "register_no": "Register No",
-        "department": "Branch"
-    }, inplace=True)
+    rows = []
+    max_subjects = 0
 
-    df["Semester"] = 1
-    df["Sub1"] = "GEN"
+    for student in students_qs:
+        student_codes = list(
+            student.subjects.filter(code__in=subject_codes)
+            .values_list("code", flat=True)
+        )
+        if not student_codes and student.subject_code:
+            raw_codes = [
+                s.strip().replace(".0", "")
+                for s in str(student.subject_code).split(",")
+                if s.strip()
+            ]
+            student_codes = [code for code in raw_codes if code in subject_codes]
+        if not student_codes:
+            continue
 
+        max_subjects = max(max_subjects, len(student_codes))
+        rows.append({
+            "Register No": student.register_no,
+            "Student Name": student.name,
+            "Branch": student.department,
+            "Semester": student.semester if student.semester is not None else 1,
+            "subjects": student_codes
+        })
+
+    if not rows:
+        raise ValueError("No students found for selected subject codes.")
+
+    data_rows = []
+    for row in rows:
+        record = {
+            "Register No": row["Register No"],
+            "Student Name": row["Student Name"],
+            "Branch": row["Branch"],
+            "Semester": row["Semester"]
+        }
+        for idx in range(max_subjects):
+            key = f"Sub{idx + 1}"
+            record[key] = row["subjects"][idx] if idx < len(row["subjects"]) else ""
+        data_rows.append(record)
+
+    df = pd.DataFrame(data_rows)
     df.to_csv(input_csv, index=False)
 
     # --------------------------------
@@ -61,14 +102,22 @@ def run_full_allocation_pipeline(exam):
     # STEP 3: Prepare Exam Session
     # --------------------------------
 
-    halls = Hall.objects.all()
+    if halls is None:
+        halls = Hall.objects.filter(user=exam.user)
+    else:
+        if hasattr(halls, "all"):
+            halls = halls.all()
+        else:
+            hall_ids = [h.id for h in halls]
+            halls = Hall.objects.filter(id__in=hall_ids, user=exam.user)
+
+    if halls.count() == 0:
+        raise ValueError("No halls available for allocation.")
 
     exam_config = {
         "exam_date": str(exam.date),
-        "session": "FN",
-        "subject_codes": list(
-            exam.subjects.values_list("code", flat=True)
-        ),
+        "session": exam.session,
+        "subject_codes": subject_codes,
         "number_of_halls": halls.count(),
         "hall_capacity": halls.first().capacity,
         "invigilators_per_hall": 2

@@ -19,12 +19,12 @@ document.addEventListener("DOMContentLoaded", function () {
 function showPage(page) {
 
     const routes = {
-        dashboard: "../dashboard/dashboard.html",
-        students: "../students/upload.html",
-        config: "../exams/config.html",
-        generate: "../seating/generate.html",
-        viewer: "../seating/view.html",
-        profile: "../profile/profile.html"
+        dashboard: "/dashboard/",
+        students: "/students/upload/",
+        config: "/exams/config/",
+        generate: "/seating/generate/",
+        viewer: "/seating/view/",
+        profile: "/profile/"
     };
 
     if (routes[page]) {

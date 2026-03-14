@@ -1,17 +1,16 @@
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from accounts.decorators import admin_required
 from students.models import Student
 from halls.models import Hall
 from exams.models import Exam
 from .models import SeatingAllocation, Seat
-from .allocator import simple_allocator
 from .allocator_service import run_full_allocation_pipeline
 import pandas as pd
 from django.db import transaction
 
 import json
 from io import BytesIO
+from json import JSONDecodeError
 
 # PDF
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -28,8 +27,8 @@ from openpyxl import Workbook
 
 @admin_required
 def preview_seating(request):
-    total_students = Student.objects.count()
-    halls = Hall.objects.all()
+    total_students = Student.objects.filter(user=request.user).count()
+    halls = Hall.objects.filter(user=request.user)
 
     total_capacity = sum(hall.capacity for hall in halls)
 
@@ -44,7 +43,6 @@ def preview_seating(request):
 # GENERATE SEATING
 # -------------------------
 
-@csrf_exempt
 @admin_required
 @transaction.atomic
 def generate_seating(request):
@@ -52,20 +50,44 @@ def generate_seating(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body or "{}")
+    except JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body"}, status=400)
+
     exam_id = data.get("exam_id")
+    selected_halls = data.get("selected_halls", [])
 
     if not exam_id:
         return JsonResponse({"error": "exam_id required"}, status=400)
 
-    exam = Exam.objects.get(id=exam_id)
+    exam = Exam.objects.filter(id=exam_id, user=request.user).first()
+    if not exam:
+        return JsonResponse({"error": "Exam not found"}, status=404)
 
     # Prevent duplicate generation
     if SeatingAllocation.objects.filter(exam=exam).exists():
         return JsonResponse({"error": "Seating already generated for this exam"}, status=400)
 
-    total_students = Student.objects.count()
-    total_capacity = sum(h.capacity for h in Hall.objects.all())
+    if selected_halls:
+        halls_qs = Hall.objects.filter(id__in=selected_halls, user=request.user)
+    else:
+        halls_qs = Hall.objects.filter(user=request.user)
+
+    halls = list(halls_qs)
+    if not halls:
+        return JsonResponse({"error": "No halls selected"}, status=400)
+
+    subject_codes = list(getattr(exam, "subject_codes", []) or [])
+    if not subject_codes:
+        subject_codes = list(exam.subjects.values_list("code", flat=True))
+    subject_codes = [str(code).strip().replace(".0", "") for code in subject_codes if str(code).strip()]
+
+    total_students = Student.objects.filter(
+        user=request.user,
+        subjects__code__in=subject_codes
+    ).distinct().count()
+    total_capacity = sum(h.capacity for h in halls)
 
     if total_capacity < total_students:
         return JsonResponse({"error": "Not enough seats available"}, status=400)
@@ -76,14 +98,19 @@ def generate_seating(request):
     # -----------------------------
     # STEP 1: Run full algorithm pipeline
     # -----------------------------
-    csv_output = run_full_allocation_pipeline(exam)
+    try:
+        csv_output = run_full_allocation_pipeline(exam, halls=halls_qs)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except Exception:
+        return JsonResponse({"error": "Seating generation failed"}, status=500)
 
     # -----------------------------
     # STEP 2: Read algorithm output
     # -----------------------------
     df = pd.read_csv(csv_output)
 
-    halls = list(Hall.objects.all())
+    halls = list(halls_qs)
 
     # -----------------------------
     # STEP 3: Convert to Django seats
@@ -100,7 +127,10 @@ def generate_seating(request):
         row_no = (seat_number - 1) // column_count + 1
         column_no = (seat_number - 1) % column_count + 1
 
-        student = Student.objects.filter(register_no=row["register_no"]).first()
+        student = Student.objects.filter(
+            user=request.user,
+            register_no=row["register_no"]
+        ).first()
 
         if not student:
             raise ValueError(f"Student not found: {row['register_no']}")
@@ -114,6 +144,7 @@ def generate_seating(request):
         )
 
     return JsonResponse({"status": "seating generated using algorithm"})
+
 # -------------------------
 # VIEW SEATING
 # -------------------------
@@ -126,7 +157,10 @@ def view_seating(request):
     if not exam_id:
         return JsonResponse({"error": "exam_id required"}, status=400)
 
-    allocation = SeatingAllocation.objects.filter(exam_id=exam_id).last()
+    allocation = SeatingAllocation.objects.filter(
+        exam_id=exam_id,
+        exam__user=request.user
+    ).last()
 
     if not allocation:
         return JsonResponse({"error": "No seating generated"}, status=404)
@@ -141,7 +175,7 @@ def view_seating(request):
     # Subject filter
     subject_filter = request.GET.get("subject")
     if subject_filter:
-        seats = seats.filter(allocation__exam__subjects__code=subject_filter)
+        seats = seats.filter(student__subjects__code=subject_filter)
 
     halls_data = {}
 
@@ -182,12 +216,17 @@ def export_pdf(request):
     if not exam_id:
         return JsonResponse({"error": "exam_id required"}, status=400)
 
-    allocation = SeatingAllocation.objects.filter(exam_id=exam_id).last()
+    allocation = SeatingAllocation.objects.filter(
+        exam_id=exam_id,
+        exam__user=request.user
+    ).last()
 
     if not allocation:
         return JsonResponse({"error": "No seating generated"}, status=404)
 
-    exam = Exam.objects.get(id=exam_id)
+    exam = Exam.objects.filter(id=exam_id, user=request.user).first()
+    if not exam:
+        return JsonResponse({"error": "Exam not found"}, status=404)
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer)
@@ -240,7 +279,10 @@ def export_excel(request):
     if not exam_id:
         return JsonResponse({"error": "exam_id required"}, status=400)
 
-    allocation = SeatingAllocation.objects.filter(exam_id=exam_id).last()
+    allocation = SeatingAllocation.objects.filter(
+        exam_id=exam_id,
+        exam__user=request.user
+    ).last()
 
     if not allocation:
         return JsonResponse({"error": "No seating generated"}, status=404)
@@ -266,9 +308,7 @@ def export_excel(request):
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
     response["Content-Disposition"] = "attachment; filename=seating.xlsx"
-
     wb.save(response)
 
     return response

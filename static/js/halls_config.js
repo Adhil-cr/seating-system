@@ -1,8 +1,24 @@
 document.addEventListener("DOMContentLoaded", function () {
 
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i += 1) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === `${name}=`) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
     const addBtn = document.getElementById("save-hall-btn");
     const saveAllBtn = document.getElementById("save-halls-btn");
     const hallList = document.getElementById("hall-list");
+    const csrfToken = getCookie("csrftoken");
 
     if (!addBtn || !saveAllBtn || !hallList) return;
 
@@ -83,17 +99,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 const response = await fetch("/api/halls/create/", {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
                     },
+                    credentials: "same-origin",
                     body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
 
                 if (response.ok) {
                     successCount += 1;
                 } else {
-                    alert(data.error || "Failed to create hall");
+                    alert(data.error || `Failed to create hall (${response.status})`);
                     return;
                 }
             } catch (error) {

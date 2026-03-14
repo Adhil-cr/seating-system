@@ -1,10 +1,16 @@
 from django.db import models
+from django.conf import settings
 
 # Create your models here.
 
-from django.db import models
-
 class Hall(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="halls",
+        null=True,
+        blank=True
+    )
     name = models.CharField(max_length=50)
     rows = models.IntegerField()
     columns = models.IntegerField()

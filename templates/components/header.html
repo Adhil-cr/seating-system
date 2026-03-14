@@ -5,6 +5,10 @@
     </div>
 
     <div class="header-right">
-        <span class="user-name">Admin User</span>
+        {% if request.user.is_authenticated %}
+            <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+        {% else %}
+            <span class="user-name">Guest</span>
+        {% endif %}
     </div>
 </div>
