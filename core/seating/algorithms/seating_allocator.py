@@ -40,6 +40,16 @@ def allocate_seating(
     if not required_cols.issubset(df.columns):
         raise ValueError("Prepared CSV schema mismatch.")
 
+    # FIX: multi-subject student handling
+    # Ensure expected columns exist for downstream logic.
+    if "primary_subject" not in df.columns:
+        df["primary_subject"] = df["subject_code"]
+    if "is_multi_subject" not in df.columns:
+        counts = df["register_no"].value_counts()
+        df["is_multi_subject"] = df["register_no"].map(
+            lambda reg: counts.get(reg, 0) > 1
+        )
+
     # ----------------------------
     # Step 2: Read configuration
     # ----------------------------
@@ -53,8 +63,27 @@ def allocate_seating(
     # ----------------------------
     # Step 3: Allocate students to halls (UNCHANGED LOGIC)
     # ----------------------------
+    # FIX: multi-subject student handling
+    # Allocate a single physical seat per unique register_no, using primary_subject.
+    unique_rows = []
+    for reg, group in df.groupby("register_no", sort=False):
+        student_name = group["student_name"].iloc[0]
+        department = group["department"].iloc[0]
+        primary_subject = str(group["primary_subject"].iloc[0]).strip()
+        if not primary_subject:
+            primary_subject = str(group["subject_code"].iloc[0]).strip()
+
+        unique_rows.append({
+            "register_no": reg,
+            "student_name": student_name,
+            "department": department,
+            "subject_code": primary_subject
+        })
+
+    unique_df = pd.DataFrame(unique_rows)
+
     halls = _allocate_students_to_halls(
-        df=df,
+        df=unique_df,
         number_of_halls=number_of_halls,
         hall_capacity=hall_capacity,
         max_subject_per_hall=max_subject_per_hall
@@ -69,7 +98,7 @@ def allocate_seating(
     # ----------------------------
     # Step 5: Generate output rows with seat numbers
     # ----------------------------
-    output_rows = _generate_output_rows(halls)
+    output_rows = _generate_output_rows(halls, df)
 
     output_df = pd.DataFrame(output_rows)
 
@@ -226,24 +255,65 @@ def _reorder_hall_seats_by_bench(seats):
     return reordered
 
 
-def _generate_output_rows(halls):
+def _generate_output_rows(halls, prepared_df):
     """
-    Assign seat numbers sequentially per hall
-    after in-hall reordering.
+    Assign seat numbers sequentially per hall and then
+    replicate the same hall_id/seat_number for all subject rows
+    of the same register_no.
     """
-    rows = []
+    # FIX: multi-subject student handling
+    # Build a seat assignment map per register_no.
+    seat_map = {}
     for hall in halls:
         seat_number = 1
         for seat in hall["seats"]:
-            rows.append({
-                "register_no": seat["register_no"],
-                "student_name": seat["student_name"],
-                "department": seat["department"],
-                "subject_code": seat["subject_code"],
+            seat_map[seat["register_no"]] = {
                 "hall_id": hall["hall_id"],
                 "seat_number": seat_number
-            })
+            }
             seat_number += 1
+
+    # FIX: multi-subject student handling
+    # Precompute primary + arrear subjects per student.
+    subject_map = {}
+    primary_map = {}
+    arrear_map = {}
+    for reg, group in prepared_df.groupby("register_no", sort=False):
+        codes = []
+        for code in group["subject_code"].tolist():
+            code_str = str(code).strip().replace(".0", "")
+            if code_str and code_str not in codes:
+                codes.append(code_str)
+
+        primary_subject = ""
+        if "primary_subject" in group.columns:
+            primary_subject = str(group["primary_subject"].iloc[0]).strip()
+        if not primary_subject and codes:
+            primary_subject = codes[0]
+
+        subject_map[reg] = codes
+        primary_map[reg] = primary_subject
+        arrear_map[reg] = ",".join([c for c in codes if c != primary_subject])
+
+    rows = []
+    for _, row in prepared_df.iterrows():
+        reg = row["register_no"]
+        assignment = seat_map.get(reg)
+        if not assignment:
+            raise ValueError(f"Seat assignment missing for register_no {reg}")
+
+        rows.append({
+            "register_no": row["register_no"],
+            "student_name": row["student_name"],
+            "department": row["department"],
+            "subject_code": row["subject_code"],
+            "primary_subject": primary_map.get(reg, ""),
+            "arrear_subjects": arrear_map.get(reg, ""),
+            "is_multi_subject": bool(row.get("is_multi_subject", False)),
+            "hall_id": assignment["hall_id"],
+            "seat_number": assignment["seat_number"]
+        })
+
     return rows
 
 

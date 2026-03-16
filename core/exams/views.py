@@ -55,7 +55,7 @@ def list_exams(request):
                 student_count = Student.objects.filter(
                     user=request.user,
                     subjects__code__in=subject_codes
-                ).distinct().count()
+                ).values("register_no").distinct().count()
             else:
                 student_count = 0
 
@@ -128,7 +128,7 @@ def create_exam(request):
     student_count = Student.objects.filter(
         user=request.user,
         subjects__code__in=subject_codes
-    ).distinct().count()
+    ).values("register_no").distinct().count()
 
     try:
         ActivityLog.objects.create(

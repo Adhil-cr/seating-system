@@ -49,3 +49,5 @@ def validate_normalized_csv(df: pd.DataFrame) -> None:
         raise ValueError(
             "Duplicate (register_no, subject_code) pairs found in normalized data"
         )
+    # FIX: multi-subject student handling
+    # Note: duplicate register_no across DIFFERENT subject_code values is valid.

@@ -63,10 +63,51 @@ def prepare_exam_session(
     if session_df.empty:
         raise ValueError("No students found for selected subject codes.")
 
+    # FIX: multi-subject student handling
+    # Add per-student flags and primary subject selection.
+    subject_counts = session_df["register_no"].value_counts()
+    session_df["is_multi_subject"] = session_df["register_no"].map(
+        lambda reg: subject_counts.get(reg, 0) > 1
+    )
+
+    def _coerce_semester(value):
+        try:
+            return int(float(str(value).strip()))
+        except (TypeError, ValueError):
+            return None
+
+    def _select_primary_subject(group):
+        semester_raw = group["semester"].dropna().iloc[0] if not group["semester"].dropna().empty else None
+        semester = _coerce_semester(semester_raw)
+
+        codes = []
+        for code in group["subject_code"].tolist():
+            code_str = str(code).strip().replace(".0", "")
+            if code_str and code_str not in codes:
+                codes.append(code_str)
+
+        # Prefer subject code that matches the student's semester (regular exam)
+        if semester is not None:
+            semester_prefix = str(semester)
+            for code_str in codes:
+                if code_str.startswith(semester_prefix):
+                    return code_str
+
+        # Fallback: deterministic lowest subject code
+        return sorted(codes)[0] if codes else ""
+
+    primary_map = {}
+    for reg, group in session_df.groupby("register_no", sort=False):
+        primary_map[reg] = _select_primary_subject(group)
+
+    session_df["primary_subject"] = session_df["register_no"].map(primary_map)
+
     # ----------------------------
     # Step 4: Capacity validation
     # ----------------------------
-    total_students = len(session_df)
+    # FIX: multi-subject student handling
+    # Capacity should count unique students, not subject rows.
+    total_students = session_df["register_no"].nunique()
     total_capacity = number_of_halls * hall_capacity
 
     if total_students > total_capacity:
