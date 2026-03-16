@@ -114,12 +114,15 @@ def run_full_allocation_pipeline(exam, halls=None):
     if halls.count() == 0:
         raise ValueError("No halls available for allocation.")
 
+    hall_capacities = [hall.capacity for hall in halls]
+
     exam_config = {
         "exam_date": str(exam.date),
         "session": exam.session,
         "subject_codes": subject_codes,
         "number_of_halls": halls.count(),
-        "hall_capacity": halls.first().capacity,
+        "hall_capacity": min(hall_capacities),
+        "hall_capacities": hall_capacities,
         "invigilators_per_hall": 2
     }
 
@@ -135,7 +138,8 @@ def run_full_allocation_pipeline(exam, halls=None):
 
     seating_config = {
         "number_of_halls": halls.count(),
-        "hall_capacity": halls.first().capacity,
+        "hall_capacity": min(hall_capacities),
+        "hall_capacities": hall_capacities,
         "max_subject_per_hall": 12
     }
 

@@ -1,4 +1,5 @@
 import os
+import math
 import pandas as pd
 from collections import defaultdict, deque
 
@@ -54,11 +55,13 @@ def allocate_seating(
     # Step 2: Read configuration
     # ----------------------------
     number_of_halls = seating_config["number_of_halls"]
-    hall_capacity = seating_config["hall_capacity"]
+    hall_capacity = seating_config.get("hall_capacity")
+    hall_capacities = seating_config.get("hall_capacities")
     max_subject_per_hall = seating_config["max_subject_per_hall"]
 
-    if hall_capacity % 2 != 0:
-        raise ValueError("Hall capacity must be even (2 seats per bench).")
+    if hall_capacities:
+        if len(hall_capacities) != number_of_halls:
+            raise ValueError("Hall capacities count does not match number_of_halls.")
 
     # ----------------------------
     # Step 3: Allocate students to halls (UNCHANGED LOGIC)
@@ -82,11 +85,24 @@ def allocate_seating(
 
     unique_df = pd.DataFrame(unique_rows)
 
+    # FIX: multi-subject student handling
+    # Relax subject-per-hall constraint if it's too strict for actual subject counts.
+    subject_counts = unique_df["subject_code"].value_counts()
+    if not subject_counts.empty:
+        min_required = max(
+            math.ceil(count / number_of_halls)
+            for count in subject_counts.values
+        )
+    else:
+        min_required = 0
+    effective_max_subject_per_hall = max(max_subject_per_hall, min_required)
+
     halls = _allocate_students_to_halls(
         df=unique_df,
         number_of_halls=number_of_halls,
         hall_capacity=hall_capacity,
-        max_subject_per_hall=max_subject_per_hall
+        hall_capacities=hall_capacities,
+        max_subject_per_hall=effective_max_subject_per_hall
     )
 
     # ----------------------------
@@ -124,6 +140,7 @@ def _allocate_students_to_halls(
     df: pd.DataFrame,
     number_of_halls: int,
     hall_capacity: int,
+    hall_capacities,
     max_subject_per_hall: int
 ):
     """
@@ -136,9 +153,12 @@ def _allocate_students_to_halls(
 
     halls = []
     for hall_id in range(1, number_of_halls + 1):
+        capacity = hall_capacity
+        if hall_capacities:
+            capacity = hall_capacities[hall_id - 1]
         halls.append({
             "hall_id": hall_id,
-            "capacity": hall_capacity,
+            "capacity": capacity,
             "occupied": 0,
             "subject_counts": defaultdict(int),
             "department_counts": defaultdict(int),

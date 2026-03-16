@@ -37,6 +37,15 @@ def prepare_exam_session(
     if not required_cols.issubset(df.columns):
         raise ValueError("Normalized CSV schema mismatch.")
 
+    # FIX: multi-subject student handling
+    # Ensure subject_code is normalized as string for reliable matching.
+    df["subject_code"] = (
+        df["subject_code"]
+        .astype(str)
+        .str.strip()
+        .str.replace(".0", "", regex=False)
+    )
+
     # ----------------------------
     # Step 2: Read configuration
     # ----------------------------
@@ -45,7 +54,8 @@ def prepare_exam_session(
     subject_codes = set(exam_config["subject_codes"])
 
     number_of_halls = exam_config["number_of_halls"]
-    hall_capacity = exam_config["hall_capacity"]
+    hall_capacity = exam_config.get("hall_capacity")
+    hall_capacities = exam_config.get("hall_capacities")
 
     # ----------------------------
     # Step 3: Filter by subjects
@@ -108,7 +118,10 @@ def prepare_exam_session(
     # FIX: multi-subject student handling
     # Capacity should count unique students, not subject rows.
     total_students = session_df["register_no"].nunique()
-    total_capacity = number_of_halls * hall_capacity
+    if hall_capacities:
+        total_capacity = sum(hall_capacities)
+    else:
+        total_capacity = number_of_halls * hall_capacity
 
     if total_students > total_capacity:
         raise ValueError(

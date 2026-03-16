@@ -114,36 +114,24 @@ User Profile
                     <h2>Seating Viewer</h2>
 
                     <div class="viewer-actions">
-                        <button class="btn-secondary">Export PDF</button>
-                        <button class="btn-secondary">Export Excel</button>
-                        <button class="btn-primary">Print</button>
+                        <div class="viewer-select">
+                            <label for="exam-select">Select Exam</label>
+                            <select id="exam-select"></select>
+                        </div>
+                        <button id="export-pdf-btn" class="btn-secondary">Export PDF</button>
+                        <button id="export-excel-btn" class="btn-secondary">Export Excel</button>
+                        <button id="print-btn" class="btn-primary">Print</button>
                     </div>
 
                 </div>
 
                 <!-- Hall Tabs -->
-                <div class="hall-tabs">
-                    <button class="tab active">Hall A</button>
-                    <button class="tab">Hall B</button>
-                    <button class="tab">Hall C</button>
-                </div>
+                <div class="hall-tabs" id="hall-tabs"></div>
 
                 <!-- Subject Legend -->
-                <div class="legend">
+                <div class="legend" id="legend"></div>
 
-                    <div class="legend-item">
-                        <span class="legend-color math"></span> Maths
-                    </div>
-
-                    <div class="legend-item">
-                        <span class="legend-color physics"></span> Physics
-                    </div>
-
-                    <div class="legend-item">
-                        <span class="legend-color chem"></span> Chemistry
-                    </div>
-
-                </div>
+                <p id="viewer-message" class="capacity-text"></p>
 
                 <!-- Seating Grid -->
                 <div class="seating-grid" id="seatingGrid"></div>

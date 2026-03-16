@@ -65,9 +65,13 @@ def generate_seating(request):
     if not exam:
         return JsonResponse({"error": "Exam not found"}, status=404)
 
-    # Prevent duplicate generation
-    if SeatingAllocation.objects.filter(exam=exam).exists():
-        return JsonResponse({"error": "Seating already generated for this exam"}, status=400)
+    # Prevent duplicate generation (ignore stale allocations with zero seats)
+    existing_allocation = SeatingAllocation.objects.filter(exam=exam).order_by("-id").first()
+    if existing_allocation:
+        if Seat.objects.filter(allocation=existing_allocation).exists():
+            return JsonResponse({"error": "Seating already generated for this exam"}, status=400)
+        # Stale allocation from a failed run – clean it up
+        existing_allocation.delete()
 
     if selected_halls:
         halls_qs = Hall.objects.filter(id__in=selected_halls, user=request.user)
@@ -92,9 +96,6 @@ def generate_seating(request):
     if total_capacity < total_students:
         return JsonResponse({"error": "Not enough seats available"}, status=400)
 
-    # Create allocation record
-    allocation = SeatingAllocation.objects.create(exam=exam)
-
     # -----------------------------
     # STEP 1: Run full algorithm pipeline
     # -----------------------------
@@ -111,6 +112,12 @@ def generate_seating(request):
     df = pd.read_csv(csv_output)
 
     halls = list(halls_qs)
+
+    if df.empty:
+        return JsonResponse({"error": "Seating generation produced no rows"}, status=400)
+
+    # Create allocation record (only after we know we have data)
+    allocation = SeatingAllocation.objects.create(exam=exam)
 
     # -----------------------------
     # STEP 3: Convert to Django seats
@@ -177,6 +184,20 @@ def view_seating(request):
     if subject_filter:
         seats = seats.filter(student__subjects__code=subject_filter)
 
+    seats = seats.distinct()
+
+    # FIX: deduplicate seats for multi-subject students
+    seen_registers = set()
+    unique_seats = []
+    for seat in seats:
+        reg_no = seat.student.register_no
+        if reg_no in seen_registers:
+            continue
+        seen_registers.add(reg_no)
+        unique_seats.append(seat)
+
+    seats = unique_seats
+
     halls_data = {}
 
     for seat in seats:
@@ -238,27 +259,60 @@ def export_pdf(request):
     elements.append(Paragraph(f"Date: {exam.date}", styles["Normal"]))
     elements.append(Spacer(1, 12))
 
-    seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student")
+    seats = (
+        Seat.objects.filter(allocation=allocation)
+        .select_related("hall", "student")
+        .order_by("hall__name", "row", "column")
+    )
 
-    data = [["Hall", "Row", "Column", "Register No", "Name"]]
-
+    # FIX: deduplicate seats for multi-subject students
+    seen_registers = set()
+    unique_seats = []
     for seat in seats:
-        data.append([
-            seat.hall.name,
-            seat.row,
-            seat.column,
-            seat.student.register_no,
-            seat.student.name
-        ])
+        reg_no = seat.student.register_no
+        if reg_no in seen_registers:
+            continue
+        seen_registers.add(reg_no)
+        unique_seats.append(seat)
+    seats = unique_seats
 
-    table = Table(data)
+    # Group seats by hall for hall-wise tables
+    halls = {}
+    for seat in seats:
+        halls.setdefault(seat.hall_id, {
+            "hall": seat.hall,
+            "seats": []
+        })
+        halls[seat.hall_id]["seats"].append(seat)
 
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-    ]))
+    for hall_id, hall_data in halls.items():
+        hall = hall_data["hall"]
+        hall_seats = hall_data["seats"]
 
-    elements.append(table)
+        elements.append(Paragraph(f"Hall: {hall.name}", styles["Heading2"]))
+        elements.append(Spacer(1, 6))
+
+        data = [["Seat No", "Row", "Column", "Register No", "Name", "Department"]]
+
+        for seat in hall_seats:
+            seat_no = (seat.row - 1) * hall.columns + seat.column
+            data.append([
+                seat_no,
+                seat.row,
+                seat.column,
+                seat.student.register_no,
+                seat.student.name,
+                seat.student.department
+            ])
+
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+
+        elements.append(table)
+        elements.append(Spacer(1, 12))
 
     doc.build(elements)
 
