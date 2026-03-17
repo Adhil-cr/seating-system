@@ -37,7 +37,7 @@ def prepare_exam_session(
     if not required_cols.issubset(df.columns):
         raise ValueError("Normalized CSV schema mismatch.")
 
-    # FIX: multi-subject student handling
+    # FIX: multi-subject capacity fix
     # Ensure subject_code is normalized as string for reliable matching.
     df["subject_code"] = (
         df["subject_code"]
@@ -73,12 +73,10 @@ def prepare_exam_session(
     if session_df.empty:
         raise ValueError("No students found for selected subject codes.")
 
-    # FIX: multi-subject student handling
-    # Add per-student flags and primary subject selection.
-    subject_counts = session_df["register_no"].value_counts()
-    session_df["is_multi_subject"] = session_df["register_no"].map(
-        lambda reg: subject_counts.get(reg, 0) > 1
-    )
+    # FIX: multi-subject capacity fix
+    # Add per-student multi-subject flag.
+    multi = session_df.groupby("register_no")["subject_code"].transform("count") > 1
+    session_df["is_multi_subject"] = multi
 
     def _coerce_semester(value):
         try:
@@ -115,7 +113,7 @@ def prepare_exam_session(
     # ----------------------------
     # Step 4: Capacity validation
     # ----------------------------
-    # FIX: multi-subject student handling
+    # FIX: multi-subject capacity fix
     # Capacity should count unique students, not subject rows.
     total_students = session_df["register_no"].nunique()
     if hall_capacities:
