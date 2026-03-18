@@ -118,20 +118,24 @@ User Profile
                     <input type="file" id="csv-file">
                     <p>Drag & drop CSV file here or click to upload</p>
                 </div>
+                <div id="file-info" class="file-info"></div>
 
                 <div class="upload-actions">
                     <button id="upload-btn" class="btn-primary">Upload CSV</button>
                     <button class="btn-secondary">Download Sample Template</button>
                 </div>
+                <div id="upload-status" class="capacity-text"></div>
 
             </div>
 
 
             <h3 class="section-title">Preview</h3>
-            <p class="capacity-text">No preview available. Upload a CSV to view student data.</p>
+            <p id="preview-empty" class="capacity-text">No preview available. Upload a CSV to view student data.</p>
+            <div id="csv-preview"></div>
 
             <h3 class="section-title">Upload History</h3>
-            <p class="capacity-text">No uploads yet.</p>
+            <p id="history-empty" class="capacity-text">No uploads yet.</p>
+            <div id="upload-history"></div>
 
         </main>
 

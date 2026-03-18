@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.utils import OperationalError, ProgrammingError
 from dashboard.models import ActivityLog
-from .models import Student, Subject
+from .models import Student, Subject, UploadHistory
 from seating.algorithms.csv_normalizer import normalize_and_sort_csv
 
 
@@ -213,7 +213,30 @@ def upload_students(request):
     except (OperationalError, ProgrammingError):
         pass
 
+    UploadHistory.objects.create(
+        user=request.user,
+        file_name=filename,
+        students_count=total_students
+    )
+
     return JsonResponse({
         "message": "Students uploaded successfully",
         "total_students": total_students
     })
+
+
+@login_required
+def upload_history(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "GET required"}, status=405)
+
+    uploads = UploadHistory.objects.filter(user=request.user).order_by("-uploaded_at")[:20]
+    data = []
+    for upload in uploads:
+        data.append({
+            "file_name": upload.file_name,
+            "students_count": upload.students_count,
+            "uploaded_at": upload.uploaded_at.strftime("%Y-%m-%d %H:%M"),
+            "uploaded_by": request.user.get_full_name() or request.user.username
+        })
+    return JsonResponse(data, safe=False)
