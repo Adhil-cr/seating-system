@@ -20,3 +20,6 @@ media/
 
 # CSV
 students.csv
+
+# Runtime data
+core/runtime_data/
