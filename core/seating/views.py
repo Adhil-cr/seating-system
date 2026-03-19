@@ -204,6 +204,10 @@ def view_seating(request):
     if not exam_id:
         return JsonResponse({"error": "exam_id required"}, status=400)
 
+    exam = Exam.objects.filter(id=exam_id, user=request.user).first()
+    if not exam:
+        return JsonResponse({"error": "Exam not found"}, status=404)
+
     allocation = SeatingAllocation.objects.filter(
         exam_id=exam_id,
         exam__user=request.user
@@ -212,7 +216,7 @@ def view_seating(request):
     if not allocation:
         return JsonResponse({"error": "No seating generated"}, status=404)
 
-    seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student")
+    seats = Seat.objects.filter(allocation=allocation).select_related("hall", "student").prefetch_related("student__subjects")
 
     # Department filter
     department_filter = request.GET.get("department")
@@ -238,6 +242,12 @@ def view_seating(request):
 
     seats = unique_seats
 
+    subject_codes = list(getattr(exam, "subject_codes", []) or [])
+    if not subject_codes:
+        subject_codes = list(exam.subjects.values_list("code", flat=True))
+    subject_codes = [str(code).strip().replace(".0", "") for code in subject_codes if str(code).strip()]
+    subject_code_set = set(subject_codes)
+
     halls_data = {}
 
     for seat in seats:
@@ -251,17 +261,45 @@ def view_seating(request):
                 "seats": []
             }
 
+        subjects = list(seat.student.subjects.values_list("code", flat=True))
+        if subject_code_set:
+            subjects = [code for code in subjects if code in subject_code_set]
+        if not subjects and seat.student.subject_code:
+            subjects = [str(seat.student.subject_code)]
+        subjects = [str(code).strip().replace(".0", "") for code in subjects if str(code).strip()]
+        subjects_str = ", ".join(sorted(set(subjects)))
+
         halls_data[hall_name]["seats"].append({
+            "seat_number": (seat.row - 1) * seat.hall.columns + seat.column,
             "row": seat.row,
-            "column": seat.column,
+            "col": seat.column,
             "register_no": seat.student.register_no,
-            "name": seat.student.name,
-            "department": seat.student.department
+            "student_name": seat.student.name,
+            "department": seat.student.department,
+            "semester": seat.student.semester,
+            "subjects": subjects_str,
+            "is_multi_subject": len(set(subjects)) > 1
         })
 
     return JsonResponse({
-        "exam_id": exam_id,
-        "halls": halls_data
+        "exam": {
+            "id": exam.id,
+            "name": exam.name,
+            "date": str(exam.date),
+            "session": exam.session,
+            "subject_codes": subject_codes,
+        },
+        "halls": [
+            {
+                "hall_name": hall_name,
+                "room": "",
+                "rows": halls_data[hall_name]["rows"],
+                "cols": halls_data[hall_name]["columns"],
+                "total_seats": halls_data[hall_name]["rows"] * halls_data[hall_name]["columns"],
+                "seats": halls_data[hall_name]["seats"],
+            }
+            for hall_name in sorted(halls_data.keys())
+        ]
     })
 
 

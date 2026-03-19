@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Seating System{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo">
+            <i data-lucide="graduation-cap"></i>
+            <span>Seating System</span>
+        </div>
+
+        <div class="menu-section">
+            <p class="menu-title">MAIN</p>
+            <a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
+                <i data-lucide="bar-chart-3"></i>
+                Dashboard
+            </a>
+        </div>
+
+        <div class="menu-section">
+            <p class="menu-title">STUDENT MANAGEMENT</p>
+            <a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
+                <i data-lucide="upload"></i>
+                Upload Students
+            </a>
+        </div>
+
+        <div class="menu-section">
+            <p class="menu-title">EXAM MANAGEMENT</p>
+            <a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
+                <i data-lucide="building"></i>
+                Exam & Hall Config
+            </a>
+            <a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
+                <i data-lucide="settings"></i>
+                Generate Seating
+            </a>
+            <a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
+                <i data-lucide="eye"></i>
+                View Seating
+            </a>
+        </div>
+
+        <div class="menu-section">
+            <p class="menu-title">ACCOUNT</p>
+            <a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
+                <i data-lucide="user"></i>
+                User Profile
+            </a>
+        </div>
+    </aside>
+
+    <div class="main">
+        <header class="header">
+            <div class="header-left">
+                <h3>College Exam Seating Allocation System</h3>
+            </div>
+            <div class="header-right">
+                {% if request.user.is_authenticated %}
+                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                {% else %}
+                    <span class="user-name">Guest</span>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
