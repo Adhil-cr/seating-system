@@ -10,6 +10,48 @@
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        .empty-card {
+            background: #fff;
+            border: 0.5px dashed rgba(0,0,0,.18);
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 12px;
+            color: #6b6b6b;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .empty-card strong {
+            font-size: 13px;
+            color: #111;
+        }
+        .upload-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        .upload-table th,
+        .upload-table td {
+            padding: 8px 10px;
+            border-bottom: 0.5px solid rgba(0,0,0,.08);
+            text-align: left;
+        }
+        .upload-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6b6b6b;
+            background: #f7f7f7;
+        }
+        .file-info {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #1e3a5f;
+        }
+    </style>
 </head>
 
 <body>
@@ -130,11 +172,17 @@ User Profile
 
 
             <h3 class="section-title">Preview</h3>
-            <p id="preview-empty" class="capacity-text">No preview available. Upload a CSV to view student data.</p>
+            <div id="preview-empty" class="empty-card">
+                <strong>No preview yet</strong>
+                <span>Upload a CSV to see the first 10 rows here.</span>
+            </div>
             <div id="csv-preview"></div>
 
             <h3 class="section-title">Upload History</h3>
-            <p id="history-empty" class="capacity-text">No uploads yet.</p>
+            <div id="history-empty" class="empty-card">
+                <strong>No uploads yet</strong>
+                <span>Your recent CSV uploads will appear here.</span>
+            </div>
             <div id="upload-history"></div>
 
         </main>

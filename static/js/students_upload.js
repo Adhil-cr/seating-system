@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!rows.length) return;
 
         const table = document.createElement("table");
-        table.className = "table";
+        table.className = "upload-table";
 
         const headerRow = document.createElement("tr");
         rows[0].forEach(cell => {
@@ -108,12 +108,26 @@ document.addEventListener("DOMContentLoaded", function () {
     async function loadUploadHistory() {
         if (!historyContainer) return;
 
-        const response = await fetch("/api/students/upload-history/", {
-            credentials: "same-origin"
-        });
-        const data = await response.json().catch(() => []);
+        let response;
+        let data = [];
+        try {
+            response = await fetch("/api/students/upload-history/", {
+                credentials: "same-origin"
+            });
+            data = await response.json().catch(() => []);
+        } catch (error) {
+            console.error(error);
+        }
 
         historyContainer.innerHTML = "";
+
+        if (!response || !response.ok) {
+            if (historyEmpty) {
+                historyEmpty.style.display = "block";
+                historyEmpty.innerHTML = "<strong>History unavailable</strong><span>Please try again later.</span>";
+            }
+            return;
+        }
 
         if (!Array.isArray(data) || data.length === 0) {
             if (historyEmpty) historyEmpty.style.display = "block";
@@ -123,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (historyEmpty) historyEmpty.style.display = "none";
 
         const table = document.createElement("table");
-        table.className = "table";
+        table.className = "upload-table";
         table.innerHTML = `
             <tr>
                 <th>Date</th>
@@ -153,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (fileInfo) {
             const sizeKb = (file.size / 1024).toFixed(1);
-            fileInfo.innerHTML = `Selected File: <strong>${file.name}</strong> (${sizeKb} KB) <span style=\"color:#16a34a;\">&#10003;</span>`;
+            fileInfo.innerHTML = `Selected file: <strong>${file.name}</strong> (${sizeKb} KB) <span style=\"color:#16a34a;\">&#10003;</span>`;
         }
 
         const reader = new FileReader();
@@ -181,25 +195,30 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await fetch("/api/students/upload/", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrfToken
-            },
-            credentials: "same-origin",
-            body: formData
-        });
+        let response;
+        let data = {};
+        try {
+            response = await fetch("/api/students/upload/", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken
+                },
+                credentials: "same-origin",
+                body: formData
+            });
+            data = await response.json().catch(() => ({}));
+        } catch (error) {
+            console.error(error);
+        }
 
-        const data = await response.json().catch(() => ({}));
-
-        if (response.ok) {
+        if (response && response.ok) {
             if (uploadStatus) {
                 uploadStatus.textContent = `Upload successful. ${data.total_students || 0} students imported.`;
             }
             await loadUploadHistory();
         } else {
             if (uploadStatus) {
-                uploadStatus.textContent = data.error || `Upload failed (${response.status})`;
+                uploadStatus.textContent = data.error || "Upload failed. Please try again.";
             }
         }
 

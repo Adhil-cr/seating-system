@@ -15,6 +15,7 @@ class Hall(models.Model):
     rows = models.IntegerField()
     columns = models.IntegerField()
     seats_per_bench = models.IntegerField()
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name

@@ -14,7 +14,7 @@ def list_halls(request):
     if request.method != "GET":
         return JsonResponse({"error": "GET required"}, status=405)
 
-    halls = Hall.objects.filter(user=request.user).order_by("name")
+    halls = Hall.objects.filter(user=request.user, is_active=True).order_by("name")
     data = []
     for hall in halls:
         data.append({
@@ -57,15 +57,43 @@ def create_hall(request):
     if rows <= 0 or columns <= 0 or seats_per_bench <= 0:
         return JsonResponse({"error": "rows, columns, seats_per_bench must be positive"}, status=400)
 
-    hall = Hall.objects.create(
+    existing = Hall.objects.filter(
         user=request.user,
         name=name,
-        rows=rows,
-        columns=columns,
-        seats_per_bench=seats_per_bench,
-    )
+        is_active=False
+    ).first()
+
+    if existing:
+        existing.rows = rows
+        existing.columns = columns
+        existing.seats_per_bench = seats_per_bench
+        existing.is_active = True
+        existing.save()
+        hall = existing
+    else:
+        hall = Hall.objects.create(
+            user=request.user,
+            name=name,
+            rows=rows,
+            columns=columns,
+            seats_per_bench=seats_per_bench,
+        )
 
     return JsonResponse({
         "status": "hall created",
         "capacity": hall.capacity
     })
+
+
+@admin_required
+def delete_hall(request, hall_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    hall = Hall.objects.filter(id=hall_id, user=request.user).first()
+    if not hall:
+        return JsonResponse({"error": "Hall not found"}, status=404)
+
+    hall.is_active = False
+    hall.save(update_fields=["is_active"])
+    return JsonResponse({"status": "hall deleted"})

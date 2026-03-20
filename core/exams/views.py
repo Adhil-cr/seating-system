@@ -4,8 +4,9 @@ from django.shortcuts import render
 
 import json
 from json import JSONDecodeError
-from datetime import datetime
+from datetime import datetime, time
 from django.http import JsonResponse
+from django.utils import timezone
 from django.db.utils import OperationalError, ProgrammingError
 from accounts.decorators import admin_required
 from dashboard.models import ActivityLog
@@ -36,6 +37,33 @@ def _normalize_subject_codes(raw_codes):
     return unique_codes
 
 
+def _session_end_datetime(exam_date, session):
+    if not exam_date:
+        return None
+    session_value = (session or "").upper()
+    if session_value in [Exam.SESSION_AM, "AM"]:
+        cutoff = time(12, 0)
+    elif session_value in [Exam.SESSION_PM, "PM"]:
+        cutoff = time(17, 0)
+    else:
+        cutoff = time(23, 59, 59)
+
+    dt = datetime.combine(exam_date, cutoff)
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt
+
+
+def _session_over(exam, now=None):
+    if not exam or not exam.date:
+        return False
+    now = now or timezone.localtime()
+    end_dt = _session_end_datetime(exam.date, exam.session)
+    if not end_dt:
+        return False
+    return now >= end_dt
+
+
 @admin_required
 def list_exams(request):
     if request.method != "GET":
@@ -62,6 +90,7 @@ def list_exams(request):
             exams_data.append({
                 "id": exam.id,
                 "name": exam.name,
+                "date": str(exam.date),
                 "session": exam.session,
                 "student_count": student_count
             })
@@ -72,6 +101,31 @@ def list_exams(request):
         )
 
     return JsonResponse(exams_data, safe=False)
+
+
+@admin_required
+def delete_exam(request, exam_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    exam = Exam.objects.filter(id=exam_id, user=request.user).first()
+    if not exam:
+        return JsonResponse({"error": "Exam not found"}, status=404)
+
+    from seating.models import SeatingAllocation, Seat
+
+    if not _session_over(exam):
+        return JsonResponse(
+            {"error": "Cannot delete exam before its session ends"},
+            status=400
+        )
+
+    allocation = SeatingAllocation.objects.filter(exam=exam).first()
+    if allocation and Seat.objects.filter(allocation=allocation).exists():
+        pass
+
+    exam.delete()
+    return JsonResponse({"status": "exam deleted"})
 
 
 @admin_required

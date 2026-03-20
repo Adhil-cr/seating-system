@@ -1,215 +1,435 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html>
 
-<head>
-    <title>Config</title>
+{% block title %}Exam & Hall Configuration{% endblock %}
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% block head %}
+<style>
+  /* Shared layout */
+  .cfg-page {
+    padding: 24px;
+    background: #f5f4f0;
+    min-height: 100vh;
+  }
+  .cfg-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: #111;
+    margin-bottom: 20px;
+  }
+  .cfg-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .cfg-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 0.5px solid rgba(0,0,0,.12);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .cfg-card-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #111;
+    margin-bottom: 4px;
+  }
+  .cfg-card-sub {
+    font-size: 12px;
+    color: #6b6b6b;
+    margin-bottom: 18px;
+  }
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-</head>
+  /* Form fields */
+  .cfg-field { margin-bottom: 14px; }
+  .cfg-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b6b6b;
+    margin-bottom: 5px;
+  }
+  .cfg-field input,
+  .cfg-field select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 0.5px solid rgba(0,0,0,.22);
+    background: #fff;
+    color: #111;
+    font-size: 14px;
+  }
+  .cfg-field input:focus,
+  .cfg-field select:focus {
+    outline: none;
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 2px rgba(30,58,95,.12);
+  }
+  .cfg-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cfg-field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
-<body>
+  .cfg-hint {
+    font-size: 12px;
+    color: #9b9b9b;
+    margin-top: 4px;
+  }
 
-<div class="app">
+  /* Buttons */
+  .cfg-btn {
+    padding: 7px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 0.5px solid rgba(0,0,0,.22);
+    background: #fff;
+    color: #111;
+  }
+  .cfg-btn:hover { background: #f0efeb; }
+  .cfg-btn-primary { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
+  .cfg-btn-primary:hover { background: #16304f; }
+  .cfg-btn-danger-ghost {
+    border-color: rgba(220,38,38,.3);
+    color: #dc2626;
+    background: transparent;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  .cfg-btn-danger-ghost:hover { background: #fef2f2; }
+  .cfg-btn-row { display: flex; gap: 8px; align-items: center; }
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
+  /* Divider */
+  .cfg-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0 16px;
+  }
+  .cfg-divider span {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b6b6b;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .cfg-divider::before,
+  .cfg-divider::after {
+    content: "";
+    flex: 1;
+    border-top: 0.5px solid rgba(0,0,0,.12);
+  }
 
-<div class="logo">
-<i data-lucide="graduation-cap"></i>
-<span>Seating System</span>
-</div>
+  /* Hall form block */
+  .hall-form-block {
+    background: #f5f4f0;
+    border-radius: 9px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 0.5px solid rgba(0,0,0,.08);
+  }
+  .hfb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .hfb-label { font-size: 12px; font-weight: 500; color: #111; }
+  /* CHANGED: Hall capacity badge */
+  .hall-cap-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 7px;
+    background: #EEF2FF;
+    color: #1e3a5f;
+    border: 0.5px solid #c7d4f4;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 10px;
+    margin-bottom: 14px;
+  }
+  .hall-cap-num {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1e3a5f;
+  }
 
-<div class="menu-section">
+  /* Search + list */
+  .cfg-search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .cfg-search-row input {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 0.5px solid rgba(0,0,0,.18);
+    background: #fff;
+    color: #111;
+    font-size: 13px;
+  }
+  .cfg-search-row select {
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 0.5px solid rgba(0,0,0,.18);
+    background: #fff;
+    color: #111;
+    font-size: 13px;
+  }
+  .cfg-count {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #f0efeb;
+    color: #6b6b6b;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .cfg-list { display: flex; flex-direction: column; max-height: 340px; overflow-y: auto; }
 
-<p class="menu-title">MAIN</p>
+  /* Exam list items */
+  .exam-item {
+    background: #fff;
+    border-radius: 8px;
+    border: 0.5px solid rgba(0,0,0,.10);
+    padding: 12px 14px;
+    margin-bottom: 7px;
+  }
+  .ei-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .ei-name { font-size: 12px; font-weight: 500; color: #111; line-height: 1.3; }
+  .ei-name { font-size: 13px; font-weight: 500; color: #111; line-height: 1.3; }
+  .ei-meta { font-size: 11px; color: #6b6b6b; margin-bottom: 5px; }
+  .ei-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .ei-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #f0f0f0;
+    color: #555;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .ei-del-note { font-size: 10px; color: #bbb; }
 
-<a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
-<i data-lucide="bar-chart-3"></i>
-Dashboard
-</a>
+  /* CHANGED: smaller delete button on exam items */
+  .ei-delete {
+    border-color: rgba(220,38,38,.25);
+    color: #dc2626;
+    background: transparent;
+    padding: 4px 9px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+  .ei-delete:hover { background: #fef2f2; }
 
-</div>
+  /* Hall list items */
+  .hall-item {
+    background: #fff;
+    border-radius: 8px;
+    border: 0.5px solid rgba(0,0,0,.10);
+    padding: 12px 14px;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .hi-left { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+  .hi-name { font-size: 13px; font-weight: 500; color: #111; }
+  .hi-spec { font-size: 11px; color: #6b6b6b; }
+  .hi-cap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #EEF2FF;
+    color: #1e3a5f;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .hi-delete { align-self: flex-start; }
 
+  /* Messages */
+  .cfg-msg-success {
+    font-size: 12px;
+    color: #16a34a;
+    margin-top: 8px;
+    opacity: 1;
+    transition: opacity 1s;
+  }
+  .cfg-msg-success.fade { opacity: 0; }
+  .cfg-msg-error { font-size: 12px; color: #dc2626; margin-top: 8px; }
 
-<div class="menu-section">
+  /* CHANGED: Save success badge */
+  .save-success-msg {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #f0fdf4;
+    border: 0.5px solid #bbf7d0;
+    color: #16a34a;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 8px;
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+  .save-success-msg.fade { opacity: 0; }
 
-<p class="menu-title">STUDENT MANAGEMENT</p>
+  /* CHANGED: inline error badge for list items */
+  .inline-error-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 0.5px solid rgba(220, 38, 38, 0.3);
+    font-size: 10px;
+    margin-top: 6px;
+  }
+</style>
+{% endblock %}
 
-<a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
-<i data-lucide="upload"></i>
-Upload Students
-</a>
+{% block content %}
+<!-- SECTION: Page -->
+<div class="cfg-page">
+  <h1 class="cfg-title">Exam & hall configuration</h1>
 
-</div>
+  <div class="cfg-grid">
+    <!-- SECTION: Left Column -->
+    <div class="cfg-left">
+      <!-- SECTION: Create Exam Card -->
+      <div class="cfg-card" id="exam-card">
+        <div class="cfg-card-title">Create exam</div>
+        <div class="cfg-card-sub">Fill in the exam details and save</div>
 
+        <div class="cfg-field">
+          <label for="exam-name">Exam name</label>
+          <input type="text" id="exam-name" placeholder="e.g. Semester 2 — Morning Session">
+        </div>
 
-<div class="menu-section">
+        <!-- CHANGED: date + session in one row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="cfg-field">
+            <label for="exam-date">Exam Date</label>
+            <input type="date" id="exam-date">
+          </div>
+          <div class="cfg-field">
+            <label for="exam-session">Session</label>
+            <select id="exam-session">
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+            </select>
+          </div>
+        </div>
 
-<p class="menu-title">EXAM MANAGEMENT</p>
+        <div class="cfg-field">
+          <label for="subject-codes">Subject codes</label>
+          <input type="text" id="subject-codes" placeholder="e.g. 2001, 4029, 6000">
+          <!-- CHANGED: subject hint -->
+          <p style="font-size:11px;color:#9b9b9b;margin-top:3px;margin-bottom:10px">
+            Comma-separated · e.g. 2001, 4029, 6000
+          </p>
+        </div>
 
-<a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
-<i data-lucide="building"></i>
-Exam & Hall Config
-</a>
+        <button id="btn-save-exam" class="cfg-btn cfg-btn-primary">Save exam</button>
+        <div id="exam-msg"></div>
+      </div>
 
-<a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
-<i data-lucide="settings"></i>
-Generate Seating
-</a>
+      <!-- SECTION: Divider -->
+      <div class="cfg-divider"><span>Halls</span></div>
 
-<a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
-<i data-lucide="eye"></i>
-View Seating
-</a>
+      <!-- SECTION: Add Hall Card -->
+      <div class="cfg-card" id="hall-add-card">
+        <div class="cfg-card-title">Add hall</div>
+        <div class="cfg-card-sub">Configure rows, columns and bench size</div>
 
-</div>
+        <!-- CHANGED: hall blocks with 3-column row + capacity badge -->
+        <div id="hall-forms-container"></div>
 
-
-<div class="menu-section">
-
-<p class="menu-title">ACCOUNT</p>
-
-<a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
-<i data-lucide="user"></i>
-User Profile
-</a>
-
-</div>
-
-</aside>
-
-
-    <!-- Main Section -->
-    <div class="main">
-
-        <!-- Header -->
-        <header class="header">
-
-            <div class="header-left">
-                <h3>College Exam Seating Allocation System</h3>
-            </div>
-
-            <div class="header-right">
-                {% if request.user.is_authenticated %}
-                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-                {% else %}
-                    <span class="user-name">Guest</span>
-                {% endif %}
-            </div>
-
-        </header>
-
-
-        <!-- Page Content -->
-        <main class="content">
-
-            <h2>Exam & Hall Configuration</h2>
-
-            <div class="config-container">
-
-                <!-- Exam Section -->
-                <div class="config-card">
-
-                        <h3>Create Exam</h3>
-
-                        <div class="form-row">
-
-                            <div>
-                            <label>Exam Name</label>
-                            <input type="text" id="exam-name" placeholder="Mid Semester Exam">
-                            </div>
-
-                            <div>
-                            <label>Exam Date</label>
-                            <input type="date" id="exam-date">
-                            </div>
-
-                            <div>
-                            <label>Session</label>
-                            <select id="exam-session">
-                                <option value="AM">AM</option>
-                                <option value="PM">PM</option>
-                            </select>
-                            </div>
-
-                            <div>
-                            <label>Subjects</label>
-                            <input type="text" id="subject-codes" placeholder="Maths, Physics, Chemistry">
-                            </div>
-
-                            <button id="save-exam-btn" class="btn-primary">
-                            Save Exam
-                            </button>
-
-                        </div>
-
-                </div>
-
-
-                <!-- Hall Section -->
-                <div class="config-card">
-
-                    <h3>Add Hall</h3>
-
-                    <div id="hall-list">
-                    <div class="hall-item">
-                    <div class="hall-item-title">Hall 1</div>
-                    <div class="form-row hall-form">
-
-                            <div>
-                            <label>Hall Name</label>
-                            <input type="text" id="hall-name" class="hall-name" placeholder="Hall A">
-                            </div>
-
-                            <div>
-                            <label>Rows</label>
-                            <input type="number" id="hall-rows" class="hall-rows">
-                            </div>
-
-                            <div>
-                            <label>Columns</label>
-                            <input type="number" id="hall-columns" class="hall-columns">
-                            </div>
-
-                            <div>
-                            <label>Seats per Bench</label>
-                            <select id="seats-per-bench" class="hall-seats-per-bench">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            </select>
-                    </div>
-
-                    </div>
-                    </div>
-                    </div>
-
-                    <p class="capacity-text">
-                    Total Capacity: <strong id="capacity">0</strong>
-                    </p>
-
-                    <div class="button-group">
-                    <button id="save-hall-btn" class="btn-secondary">Add Hall</button>
-                    <button id="save-halls-btn" class="btn-primary">Save Halls</button>
-                    </div>
-
-                    </div>
-        </main>
-
+        <div class="cfg-btn-row">
+          <button id="btn-add-hall" class="cfg-btn">+ Add another hall</button>
+          <button id="btn-save-halls" class="cfg-btn cfg-btn-primary">Save halls</button>
+        </div>
+        <div id="hall-msg"></div>
+      </div>
     </div>
 
-</div>
+    <!-- SECTION: Right Column -->
+    <div class="cfg-right">
+      <!-- SECTION: Existing Exams -->
+      <div class="cfg-card" id="exam-list-card">
+        <div class="cfg-card-title">Existing exams</div>
+        <div class="cfg-card-sub">Manage previously created exams</div>
 
-<!-- JS -->
+        <!-- CHANGED: exam search + sort -->
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" id="exam-search" placeholder="Search exams…"
+                 style="flex:1;padding:8px 10px;border-radius:6px;border:0.5px solid rgba(0,0,0,.18);background:#fff;color:#111;font-size:13px">
+          <select id="exam-sort"
+                  style="padding:8px 10px;border-radius:6px;border:0.5px solid rgba(0,0,0,.18);background:#fff;color:#111;font-size:13px">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Name A → Z</option>
+          </select>
+        </div>
+
+        <!-- CHANGED: exam count badge -->
+        <div id="exam-count" style="display:inline-block;padding:3px 10px;border-radius:12px;background:#f0efeb;color:#6b6b6b;font-size:12px;font-weight:500;margin-bottom:9px">
+          — exams
+        </div>
+        <div class="cfg-list" id="exam-list"></div>
+      </div>
+
+      <!-- SECTION: Existing Halls -->
+      <div class="cfg-card" id="hall-list-card">
+        <div class="cfg-card-title">Existing halls</div>
+        <div class="cfg-card-sub">Review and remove halls</div>
+
+        <!-- CHANGED: hall search + sort -->
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" id="hall-search" placeholder="Search halls…"
+                 style="flex:1;padding:8px 10px;border-radius:6px;border:0.5px solid rgba(0,0,0,.18);background:#fff;color:#111;font-size:13px">
+          <select id="hall-sort"
+                  style="padding:8px 10px;border-radius:6px;border:0.5px solid rgba(0,0,0,.18);background:#fff;color:#111;font-size:13px">
+            <option value="az">Name A → Z</option>
+            <option value="za">Name Z → A</option>
+            <option value="cap-asc">Capacity ↑</option>
+            <option value="cap-desc">Capacity ↓</option>
+          </select>
+        </div>
+
+        <!-- CHANGED: hall count badge -->
+        <div id="hall-count" style="display:inline-block;padding:3px 10px;border-radius:12px;background:#f0efeb;color:#6b6b6b;font-size:12px;font-weight:500;margin-bottom:9px">
+          — halls
+        </div>
+        <div class="cfg-list" id="hall-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script src="{% static 'js/hall.js' %}"></script>
-<script src="{% static 'js/app.js' %}"></script>
 <script src="{% static 'js/exams_config.js' %}"></script>
 <script src="{% static 'js/halls_config.js' %}"></script>
-
-</body>
-</html>
+{% endblock %}
