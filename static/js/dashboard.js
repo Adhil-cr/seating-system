@@ -4,7 +4,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const pendingEl = document.getElementById("dash-pending");
     const lastStatusEl = document.getElementById("dash-last-status");
     const alertsEl = document.getElementById("dashboard-alerts");
-    const hallDetailsEl = document.getElementById("hall-details");
 
     function renderAlerts(alerts) {
         if (!alertsEl) return;
@@ -18,27 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
             div.className = `alert ${alert.level || "warning"}`;
             div.textContent = alert.message || "Alert";
             alertsEl.appendChild(div);
-        });
-    }
-
-    function renderHallDetails(halls) {
-        if (!hallDetailsEl) return;
-        hallDetailsEl.innerHTML = "";
-        if (!halls || halls.length === 0) {
-            hallDetailsEl.innerHTML = '<div class="hall-detail-empty">No halls configured yet.</div>';
-            return;
-        }
-        halls.forEach(hall => {
-            const card = document.createElement("div");
-            card.className = "hall-detail-card";
-            card.innerHTML = `
-                <div>
-                    <div class="hall-detail-name">${hall.name}</div>
-                    <div class="hall-detail-meta">${hall.rows} rows · ${hall.columns} cols · ${hall.seats_per_bench} seats/bench</div>
-                </div>
-                <div class="hall-detail-cap">Capacity ${hall.capacity}</div>
-            `;
-            hallDetailsEl.appendChild(card);
         });
     }
 
@@ -56,7 +34,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             renderAlerts(data.alerts);
-            renderHallDetails(data.halls);
         } catch (err) {
             renderAlerts([{ level: "error", message: "Failed to load dashboard data." }]);
         }

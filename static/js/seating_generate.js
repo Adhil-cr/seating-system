@@ -25,13 +25,23 @@ document.addEventListener("DOMContentLoaded", function () {
     const modal = document.getElementById("alloc-modal");
     const modalSubject = document.getElementById("alloc-modal-subject");
     const modalError = document.getElementById("alloc-modal-error");
+    const modalIssue = document.getElementById("alloc-modal-issue");
+    const modalSubjects = document.getElementById("alloc-modal-subjects");
+    const modalSubjectCount = document.getElementById("alloc-modal-subject-count");
     const modalLimit = document.getElementById("alloc-modal-limit");
     const modalApply = document.getElementById("alloc-modal-apply");
-    const modalRelax = document.getElementById("alloc-modal-relax");
     const modalClose = document.getElementById("alloc-modal-close");
-    const modalHalls = document.getElementById("alloc-modal-halls");
+    const modalLast = document.getElementById("alloc-modal-last");
+    const modalRec = document.getElementById("alloc-modal-rec");
+    const modalReset = document.getElementById("alloc-modal-reset");
+    const modalSubjectCap = document.getElementById("alloc-modal-subject-cap");
     let examsCache = [];
     let lastPayload = null;
+    let lastExamId = null;
+
+    function limitStorageKey(examId) {
+        return `seating_limit_exam_${examId}`;
+    }
 
     async function loadExams() {
         const response = await fetch("/api/exams/list/", {
@@ -125,16 +135,79 @@ document.addEventListener("DOMContentLoaded", function () {
         hallList.addEventListener("change", updateTotalSeats);
     }
 
-    function openModal(subjectCode, errorMessage) {
+    function openModal(subjectCode, errorMessage, subjectCodes, subjectCounts, examId) {
         if (!modal) return;
         if (modalSubject) {
             modalSubject.textContent = subjectCode || "this subject";
+        }
+        if (modalIssue) {
+            modalIssue.textContent = errorMessage || "Seating allocation failed. Please review the subject distribution limit.";
+        }
+        if (modalSubjects) {
+            modalSubjects.innerHTML = "";
+            if (Array.isArray(subjectCodes) && subjectCodes.length) {
+                const label = document.createElement("div");
+                label.style.fontSize = "12px";
+                label.style.color = "#6b6b6b";
+                label.style.marginBottom = "4px";
+                label.textContent = "Session subjects:";
+                modalSubjects.appendChild(label);
+
+                const chips = document.createElement("div");
+                chips.className = "alloc-modal-subjects";
+                subjectCodes.forEach(code => {
+                    const chip = document.createElement("span");
+                    chip.className = "alloc-subject-chip";
+                    if (subjectCode && String(code) === String(subjectCode)) {
+                        chip.classList.add("danger");
+                    }
+                    const count = subjectCounts && typeof subjectCounts[String(code)] === "number"
+                        ? subjectCounts[String(code)]
+                        : null;
+                    chip.textContent = count !== null ? `${code} (${count})` : code;
+                    chips.appendChild(chip);
+                });
+                modalSubjects.appendChild(chips);
+            } else {
+                modalSubjects.textContent = "Session subjects: —";
+            }
+        }
+        const subjectCount = subjectCounts && typeof subjectCounts[String(subjectCode)] === "number"
+            ? subjectCounts[String(subjectCode)]
+            : null;
+        if (modalSubjectCount) {
+            modalSubjectCount.textContent = subjectCount !== null
+                ? `Students in subject ${subjectCode}: ${subjectCount}`
+                : "";
         }
         if (modalError) {
             modalError.textContent = errorMessage || "";
         }
         if (modalLimit) {
-            modalLimit.value = "";
+            const saved = examId ? localStorage.getItem(limitStorageKey(examId)) : "";
+            modalLimit.value = saved || "";
+        }
+        if (modalLast) {
+            const saved = examId ? localStorage.getItem(limitStorageKey(examId)) : "";
+            modalLast.textContent = saved ? `Last tried limit: ${saved}` : "";
+        }
+        if (modalRec) {
+            const hallsSelected = lastPayload?.selected_halls?.length || 0;
+            if (subjectCount !== null && hallsSelected > 0) {
+                const recommended = Math.ceil(subjectCount / hallsSelected);
+                modalRec.innerHTML = `Recommended limit: <span>${recommended}</span> (based on ${hallsSelected} halls)`;
+            } else {
+                modalRec.textContent = "";
+            }
+        }
+        if (modalSubjectCap) {
+            const hallsSelected = lastPayload?.selected_halls?.length || 0;
+            if (subjectCount !== null && hallsSelected > 0) {
+                const perHall = Math.ceil(subjectCount / hallsSelected);
+                modalSubjectCap.textContent = `Hall capacity per subject (est.): ${perHall}`;
+            } else {
+                modalSubjectCap.textContent = "";
+            }
         }
         modal.classList.add("open");
     }
@@ -194,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 exam_id: examId,
                 selected_halls: selectedHalls
             };
+            lastExamId = examId;
 
             const response = await fetch("/api/seating/generate/", {
                 method: "POST",
@@ -216,7 +290,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (errorMessage.toLowerCase().includes("constraints too strict")) {
                 const match = errorMessage.match(/subject\s+([A-Za-z0-9]+)/i);
                 const subjectCode = match ? match[1] : "this subject";
-                openModal(subjectCode, "");
+                const selectedId = String(examId || "");
+                const exam = examsCache.find(e => String(e.id) === selectedId);
+                const subjectCodes = exam && Array.isArray(exam.subject_codes) ? exam.subject_codes : [];
+                const subjectCounts = exam && exam.subject_counts ? exam.subject_counts : {};
+                const friendlyMessage = `Subject-per-hall limit is too strict for ${subjectCode}. We'll still try best‑effort placement if seats are available. You can increase the limit for better distribution.`;
+                openModal(subjectCode, friendlyMessage, subjectCodes, subjectCounts, examId);
             } else {
                 alert(errorMessage);
             }
@@ -229,19 +308,24 @@ document.addEventListener("DOMContentLoaded", function () {
             closeModal();
         }
     });
-    modalHalls?.addEventListener("click", () => {
-        window.location.href = "/exams/config/";
-    });
-    modalRelax?.addEventListener("click", () => {
-        submitGenerate({ relax_subject_limit: true });
-    });
     modalApply?.addEventListener("click", () => {
         const limit = parseInt(modalLimit?.value || "", 10);
         if (!limit || limit <= 0) {
             if (modalError) modalError.textContent = "Enter a valid limit.";
             return;
         }
+        if (lastExamId) {
+            localStorage.setItem(limitStorageKey(lastExamId), String(limit));
+            if (modalLast) modalLast.textContent = `Last tried limit: ${limit}`;
+        }
         submitGenerate({ max_subject_per_hall: limit });
+    });
+
+    modalReset?.addEventListener("click", () => {
+        if (!lastExamId) return;
+        localStorage.removeItem(limitStorageKey(lastExamId));
+        if (modalLimit) modalLimit.value = "";
+        if (modalLast) modalLast.textContent = "";
     });
 
     loadExams();

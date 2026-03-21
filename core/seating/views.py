@@ -22,6 +22,7 @@ from reportlab.lib.units import mm
 # Excel
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from django.utils.text import slugify
 
 
 # EXPORT: department abbreviations and colors
@@ -59,6 +60,14 @@ def get_dept_abbr(dept_name):
 
 def get_dept_colors(abbr):
     return DEPT_COLORS.get(abbr, DEPT_COLORS_FALLBACK)
+
+
+# EXPORT: safe filenames for downloads
+def _export_filename(exam, ext):
+    name = slugify(exam.name) or "exam"
+    session = slugify(str(exam.session)) or "session"
+    date = str(exam.date)
+    return f"seating_{name}_{date}_{session}.{ext}"
 
 
 # -------------------------
@@ -274,6 +283,7 @@ def view_seating(request):
             halls_data[hall_name] = {
                 "rows": seat.hall.rows,
                 "columns": seat.hall.columns,
+                "seats_per_bench": seat.hall.seats_per_bench,
                 "seats": []
             }
 
@@ -311,6 +321,7 @@ def view_seating(request):
                 "room": "",
                 "rows": halls_data[hall_name]["rows"],
                 "cols": halls_data[hall_name]["columns"],
+                "seats_per_bench": halls_data[hall_name].get("seats_per_bench", 1),
                 "total_seats": halls_data[hall_name]["rows"] * halls_data[hall_name]["columns"],
                 "seats": halls_data[hall_name]["seats"],
             }
@@ -703,7 +714,7 @@ def export_pdf(request):
 
     response = HttpResponse(buffer.read(), content_type="application/pdf")
     response["Content-Disposition"] = (
-        f'attachment; filename="seating_{exam.date}_{exam.session}.pdf"'
+        f'attachment; filename="{_export_filename(exam, "pdf")}"'
     )
     return response
 
@@ -1019,7 +1030,7 @@ def export_excel(request):
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = (
-        f'attachment; filename="seating_{exam.date}_{exam.session}.xlsx"'
+        f'attachment; filename="{_export_filename(exam, "xlsx")}"'
     )
     wb.save(response)
     return response

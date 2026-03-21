@@ -246,6 +246,27 @@ def _allocate_students_to_halls(
                 break
 
             if not allocated:
+                # Best-effort fallback: if subject-per-hall limit is too strict,
+                # place the student in any hall with remaining capacity.
+                for hall in halls_sorted:
+                    if hall["occupied"] >= hall["capacity"]:
+                        continue
+
+                    hall["seats"].append({
+                        "register_no": student["register_no"],
+                        "student_name": student["student_name"],
+                        "department": student["department"],
+                        "subject_code": subject_code,
+                        "all_subjects": student.get("all_subjects", [subject_code]),
+                        "is_multi_subject": student.get("is_multi_subject", False)
+                    })
+                    hall["occupied"] += 1
+                    hall["subject_counts"][subject_code] += 1
+                    hall["department_counts"][student["department"]] += 1
+                    allocated = True
+                    break
+
+            if not allocated:
                 raise ValueError(
                     f"Seating allocation failed for subject {subject_code}. "
                     f"Constraints too strict."

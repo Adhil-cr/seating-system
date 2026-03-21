@@ -106,6 +106,65 @@
             font-weight: 600;
             color: #111;
         }
+        .alloc-modal-issue {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #FEF3C7;
+            color: #92400e;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 0.5px solid #FCD34D;
+        }
+        .alloc-modal-subjects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .alloc-subject-chip {
+            background: #E0F2FE;
+            color: #0369A1;
+            border: 0.5px solid #7DD3FC;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .alloc-subject-chip.danger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border-color: #FCA5A5;
+        }
+        .alloc-modal-subject-count {
+            font-size: 12px;
+            color: #6b6b6b;
+            margin-top: 6px;
+        }
+        .alloc-modal-last {
+            font-size: 11px;
+            color: #6b6b6b;
+            margin-top: 6px;
+        }
+        .alloc-modal-rec {
+            font-size: 12px;
+            color: #1f2937;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+        .alloc-modal-rec span {
+            color: #1e3a5f;
+        }
+        .alloc-modal-row .alloc-reset {
+            background: #f3f4f6;
+            color: #374151;
+            border-color: rgba(0,0,0,.12);
+        }
+        .alloc-modal-row .alloc-reset:hover {
+            background: #e5e7eb;
+        }
     </style>
 </head>
 
@@ -244,16 +303,22 @@ User Profile
         <div class="alloc-modal-sub" id="alloc-modal-sub">
             The subject-per-hall limit is too strict for <span class="alloc-modal-subject" id="alloc-modal-subject">—</span>.
         </div>
-        <div class="alloc-modal-hint">
-            You can increase hall capacity or relax subject distribution limits and try again.
+        <div class="alloc-modal-hint alloc-modal-issue" id="alloc-modal-issue">
+            Seating allocation failed. Please review the subject distribution limit.
         </div>
+        <div class="alloc-modal-hint" id="alloc-modal-subjects"></div>
+        <div class="alloc-modal-subject-count" id="alloc-modal-subject-count"></div>
         <div class="alloc-modal-actions">
-            <button class="alloc-modal-btn ghost" id="alloc-modal-halls">Increase Hall Capacity</button>
             <div class="alloc-modal-row">
                 <input type="number" id="alloc-modal-limit" min="1" placeholder="Max students per hall (subject)">
                 <button class="alloc-modal-btn primary" id="alloc-modal-apply">Retry with limit</button>
             </div>
-            <button class="alloc-modal-btn primary" id="alloc-modal-relax">Retry with relaxed rules</button>
+            <div class="alloc-modal-row" style="grid-template-columns:auto auto;justify-content:flex-end">
+                <button class="alloc-modal-btn alloc-reset" id="alloc-modal-reset">Reset limit</button>
+            </div>
+            <div class="alloc-modal-last" id="alloc-modal-last"></div>
+            <div class="alloc-modal-rec" id="alloc-modal-rec"></div>
+            <div class="alloc-modal-subject-count" id="alloc-modal-subject-cap"></div>
             <div class="alloc-modal-error" id="alloc-modal-error"></div>
         </div>
     </div>

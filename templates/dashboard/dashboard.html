@@ -8,50 +8,6 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
 
-    <style>
-        .hall-details {
-            margin-top: 14px;
-            display: grid;
-            gap: 10px;
-        }
-        .hall-detail-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 14px 16px;
-            border: 0.5px solid rgba(0,0,0,.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-        }
-        .hall-detail-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1e293b;
-        }
-        .hall-detail-meta {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 3px;
-        }
-        .hall-detail-cap {
-            background: #EEF2FF;
-            color: #1e3a5f;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 8px;
-            white-space: nowrap;
-        }
-        .hall-detail-empty {
-            background: #f8fafc;
-            border: 1px dashed #cbd5f5;
-            color: #64748b;
-            padding: 14px 16px;
-            border-radius: 12px;
-            font-size: 13px;
-        }
-    </style>
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -195,11 +151,6 @@ User Profile
                         No alerts.
                     </div>
                 {% endif %}
-            </div>
-
-            <h3 class="section-title">Hall Details</h3>
-            <div id="hall-details" class="hall-details">
-                <div class="hall-detail-empty">No halls configured yet.</div>
             </div>
 
         </main>

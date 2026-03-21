@@ -55,7 +55,7 @@ def signup_page(request):
 @login_required
 def dashboard_page(request):
     total_students = Student.objects.filter(user=request.user).count()
-    total_halls = Hall.objects.filter(user=request.user).count()
+    total_halls = Hall.objects.filter(user=request.user, is_active=True).count()
     total_exams = Exam.objects.filter(user=request.user).count()
     allocated_exam_ids = SeatingAllocation.objects.filter(
         exam__user=request.user
@@ -71,7 +71,7 @@ def dashboard_page(request):
     last_status_class = "success" if last_allocation else "warning"
 
     total_capacity = sum(
-        h.capacity for h in Hall.objects.filter(user=request.user)
+        h.capacity for h in Hall.objects.filter(user=request.user, is_active=True)
     )
     alerts = []
     if total_students == 0:

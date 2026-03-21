@@ -96,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
             room: hall.room || hall.block || '',
             rows: rows,
             cols: cols,
+            seats_per_bench: hall.seats_per_bench || hall.seatsPerBench || hall.spb || 1,
             total_seats: hall.total_seats || (rows * cols),
             seats: seats
         };
@@ -128,12 +129,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // SECTION: Render Stats Bar
-    function renderStatsBar(hall) {
+    function renderStatsBar(hall, sessionTotalStudents) {
         if (!statsBar) return;
         statsBar.innerHTML = '';
 
         const totalSeats = hall.total_seats || (hall.rows * hall.cols) || 0;
         const totalStudents = hall.seats.length;
+
+        const sessionPill = document.createElement('div');
+        sessionPill.className = 'stat-pill highlight';
+        sessionPill.innerHTML = `<strong>${sessionTotalStudents}</strong><span>session students</span>`;
+        statsBar.appendChild(sessionPill);
 
         const totalPill = document.createElement('div');
         totalPill.className = 'stat-pill';
@@ -228,7 +234,8 @@ document.addEventListener("DOMContentLoaded", function () {
             hallTitle.textContent = `${hall.hall_name} — ${hall.room || ''}`.trim();
         }
         if (hallDesc) {
-            hallDesc.textContent = `${hall.rows} rows · ${hall.cols} columns · ${hall.total_seats || (hall.rows * hall.cols)} seats`;
+            const seatsPerBench = hall.seats_per_bench || 1;
+            hallDesc.textContent = `${hall.rows} rows · ${hall.cols} columns · ${seatsPerBench} seats/bench · ${hall.total_seats || (hall.rows * hall.cols)} seats`;
         }
     }
 
@@ -361,10 +368,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (subTitle) {
             const studentCount = hall.seats.length;
             const roomText = hall.room ? ` — ${hall.room}` : '';
-            subTitle.textContent = `${examMeta.date} · Session: ${examMeta.session} · ${hall.hall_name}${roomText} · ${studentCount} students`;
+            const seatsPerBench = hall.seats_per_bench || 1;
+            subTitle.textContent = `${examMeta.date} · Session: ${examMeta.session} · ${hall.hall_name}${roomText} · ${seatsPerBench} seats/bench · ${studentCount} students`;
         }
 
-        renderStatsBar(hall);
+        const sessionTotalStudents = seatData.halls.reduce((sum, h) => sum + (h.seats ? h.seats.length : 0), 0);
+        renderStatsBar(hall, sessionTotalStudents);
         renderHallTabs(seatData.halls, hallIndex);
         renderLegend(hall, examMeta);
         renderHallMeta(hall);

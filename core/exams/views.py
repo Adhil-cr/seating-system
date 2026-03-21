@@ -8,6 +8,7 @@ from datetime import datetime, time
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.utils import OperationalError, ProgrammingError
+from django.db.models import Count
 from accounts.decorators import admin_required
 from dashboard.models import ActivityLog
 from .models import Exam
@@ -79,11 +80,21 @@ def list_exams(request):
             if not subject_codes:
                 subject_codes = list(exam.subjects.values_list("code", flat=True))
 
+            subject_counts = {}
             if subject_codes:
-                student_count = Student.objects.filter(
+                student_qs = Student.objects.filter(
                     user=request.user,
                     subjects__code__in=subject_codes
-                ).values("register_no").distinct().count()
+                )
+                student_count = student_qs.values("register_no").distinct().count()
+                counts = (
+                    student_qs.values("subjects__code")
+                    .annotate(count=Count("register_no", distinct=True))
+                )
+                for row in counts:
+                    code = str(row["subjects__code"]).strip().replace(".0", "")
+                    if code:
+                        subject_counts[code] = row["count"]
             else:
                 student_count = 0
 
@@ -92,6 +103,8 @@ def list_exams(request):
                 "name": exam.name,
                 "date": str(exam.date),
                 "session": exam.session,
+                "subject_codes": subject_codes,
+                "subject_counts": subject_counts,
                 "student_count": student_count
             })
     except (OperationalError, ProgrammingError):
