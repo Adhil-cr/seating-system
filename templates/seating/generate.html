@@ -10,6 +10,103 @@
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        .alloc-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+        }
+        .alloc-modal.open {
+            display: block;
+        }
+        .alloc-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+        }
+        .alloc-modal-card {
+            position: relative;
+            background: #fff;
+            border-radius: 14px;
+            width: min(520px, 92vw);
+            margin: 10vh auto 0;
+            padding: 20px;
+            border: 0.5px solid rgba(0,0,0,.12);
+            box-shadow: 0 20px 60px rgba(0,0,0,.2);
+        }
+        .alloc-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 6px;
+        }
+        .alloc-modal-sub {
+            font-size: 13px;
+            color: #6b6b6b;
+            margin-bottom: 12px;
+        }
+        .alloc-modal-hint {
+            background: #f8fafc;
+            border: 0.5px solid rgba(0,0,0,.08);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 14px;
+        }
+        .alloc-modal-actions {
+            display: grid;
+            gap: 10px;
+        }
+        .alloc-modal-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+        .alloc-modal-row input {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 0.5px solid rgba(0,0,0,.2);
+            font-size: 13px;
+        }
+        .alloc-modal-btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 0.5px solid rgba(0,0,0,.22);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .alloc-modal-btn.primary {
+            background: #1e3a5f;
+            color: #fff;
+            border-color: #1e3a5f;
+        }
+        .alloc-modal-btn.primary:hover { background: #16304f; }
+        .alloc-modal-btn.ghost:hover { background: #f0efeb; }
+        .alloc-modal-error {
+            font-size: 12px;
+            color: #dc2626;
+            margin-top: 6px;
+        }
+        .alloc-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            border: none;
+            background: transparent;
+            font-size: 18px;
+            cursor: pointer;
+            color: #6b6b6b;
+        }
+        .alloc-modal-subject {
+            font-weight: 600;
+            color: #111;
+        }
+    </style>
 </head>
 
 <body>
@@ -138,6 +235,29 @@ User Profile
 
 </div>
 
+<!-- Allocation failure modal -->
+<div id="alloc-modal" class="alloc-modal">
+    <div class="alloc-modal-backdrop" data-close="true"></div>
+    <div class="alloc-modal-card">
+        <button class="alloc-modal-close" id="alloc-modal-close">×</button>
+        <div class="alloc-modal-title">Seating could not be generated</div>
+        <div class="alloc-modal-sub" id="alloc-modal-sub">
+            The subject-per-hall limit is too strict for <span class="alloc-modal-subject" id="alloc-modal-subject">—</span>.
+        </div>
+        <div class="alloc-modal-hint">
+            You can increase hall capacity or relax subject distribution limits and try again.
+        </div>
+        <div class="alloc-modal-actions">
+            <button class="alloc-modal-btn ghost" id="alloc-modal-halls">Increase Hall Capacity</button>
+            <div class="alloc-modal-row">
+                <input type="number" id="alloc-modal-limit" min="1" placeholder="Max students per hall (subject)">
+                <button class="alloc-modal-btn primary" id="alloc-modal-apply">Retry with limit</button>
+            </div>
+            <button class="alloc-modal-btn primary" id="alloc-modal-relax">Retry with relaxed rules</button>
+            <div class="alloc-modal-error" id="alloc-modal-error"></div>
+        </div>
+    </div>
+</div>
 
 <!-- JS -->
 <script src="{% static 'js/app.js' %}"></script>

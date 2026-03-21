@@ -56,6 +56,8 @@ def create_hall(request):
 
     if rows <= 0 or columns <= 0 or seats_per_bench <= 0:
         return JsonResponse({"error": "rows, columns, seats_per_bench must be positive"}, status=400)
+    if seats_per_bench > 3:
+        return JsonResponse({"error": "seats_per_bench cannot exceed 3"}, status=400)
 
     existing = Hall.objects.filter(
         user=request.user,

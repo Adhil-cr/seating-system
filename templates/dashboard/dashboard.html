@@ -8,6 +8,51 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
 
+    <style>
+        .hall-details {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+        .hall-detail-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            border: 0.5px solid rgba(0,0,0,.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .hall-detail-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .hall-detail-meta {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+        .hall-detail-cap {
+            background: #EEF2FF;
+            color: #1e3a5f;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+        .hall-detail-empty {
+            background: #f8fafc;
+            border: 1px dashed #cbd5f5;
+            color: #64748b;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+    </style>
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -116,39 +161,46 @@ User Profile
 
                 <div class="dashboard-card">
                     <h3>Total Students</h3>
-                    <p class="card-number">{{ total_students }}</p>
+                    <p class="card-number" id="dash-total-students">{{ total_students }}</p>
                 </div>
 
                 <div class="dashboard-card">
                     <h3>Total Halls</h3>
-                    <p class="card-number">{{ total_halls }}</p>
+                    <p class="card-number" id="dash-total-halls">{{ total_halls }}</p>
                 </div>
 
                 <div class="dashboard-card">
                     <h3>Pending Allocations</h3>
-                    <p class="card-number">{{ pending_allocations }}</p>
+                    <p class="card-number" id="dash-pending">{{ pending_allocations }}</p>
                 </div>
 
                 <div class="dashboard-card">
                     <h3>Last Seating Status</h3>
-                    <p class="card-status {{ last_status_class }}">{{ last_status }}</p>
+                    <p class="card-status {{ last_status_class }}" id="dash-last-status">{{ last_status }}</p>
                 </div>
 
             </div>
 
             <h3 class="section-title">System Alerts</h3>
 
-            {% if alerts %}
-                {% for alert in alerts %}
-                    <div class="alert {{ alert.level }}">
-                        {{ alert.message }}
+            <div id="dashboard-alerts">
+                {% if alerts %}
+                    {% for alert in alerts %}
+                        <div class="alert {{ alert.level }}">
+                            {{ alert.message }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert success">
+                        No alerts.
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="alert success">
-                    No alerts.
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
+
+            <h3 class="section-title">Hall Details</h3>
+            <div id="hall-details" class="hall-details">
+                <div class="hall-detail-empty">No halls configured yet.</div>
+            </div>
 
         </main>
 

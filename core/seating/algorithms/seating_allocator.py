@@ -55,11 +55,15 @@ def allocate_seating(
     number_of_halls = seating_config["number_of_halls"]
     hall_capacity = seating_config.get("hall_capacity")
     hall_capacities = seating_config.get("hall_capacities")
+    hall_bench_sizes = seating_config.get("hall_bench_sizes")
     max_subject_per_hall = seating_config["max_subject_per_hall"]
 
     if hall_capacities:
         if len(hall_capacities) != number_of_halls:
             raise ValueError("Hall capacities count does not match number_of_halls.")
+    if hall_bench_sizes:
+        if len(hall_bench_sizes) != number_of_halls:
+            raise ValueError("Hall bench sizes count does not match number_of_halls.")
 
     # ----------------------------
     # Step 3: Allocate students to halls (UNCHANGED LOGIC)
@@ -111,6 +115,7 @@ def allocate_seating(
         number_of_halls=number_of_halls,
         hall_capacity=hall_capacity,
         hall_capacities=hall_capacities,
+        hall_bench_sizes=hall_bench_sizes,
         max_subject_per_hall=effective_max_subject_per_hall
     )
 
@@ -118,7 +123,10 @@ def allocate_seating(
     # Step 4: Reorder seats within each hall by benches (NEW)
     # ----------------------------
     for hall in halls:
-        hall["seats"] = _reorder_hall_seats_by_bench(hall["seats"])
+        hall["seats"] = _reorder_hall_seats_by_bench(
+            hall["seats"],
+            bench_size=hall.get("bench_size", 2)
+        )
 
     # ----------------------------
     # Step 5: Generate output rows with seat numbers
@@ -159,6 +167,7 @@ def _allocate_students_to_halls(
     number_of_halls: int,
     hall_capacity: int,
     hall_capacities,
+    hall_bench_sizes,
     max_subject_per_hall: int
 ):
     """
@@ -174,9 +183,15 @@ def _allocate_students_to_halls(
         capacity = hall_capacity
         if hall_capacities:
             capacity = hall_capacities[hall_id - 1]
+        bench_size = 2
+        if hall_bench_sizes:
+            bench_size = int(hall_bench_sizes[hall_id - 1]) or 2
+        if bench_size < 1:
+            bench_size = 1
         halls.append({
             "hall_id": hall_id,
             "capacity": capacity,
+            "bench_size": bench_size,
             "occupied": 0,
             "subject_counts": defaultdict(int),
             "department_counts": defaultdict(int),
@@ -239,10 +254,10 @@ def _allocate_students_to_halls(
     return halls
 
 
-def _reorder_hall_seats_by_bench(seats):
+def _reorder_hall_seats_by_bench(seats, bench_size=2):
     """
     Reorder seats so that no two students of the same department
-    sit on the same bench (2 seats per bench).
+    sit on the same bench (bench_size seats per bench).
 
     Best-effort strategy:
       - Pair students from different departments per bench
@@ -251,6 +266,9 @@ def _reorder_hall_seats_by_bench(seats):
 
     if not seats:
         return seats
+
+    if bench_size < 1:
+        bench_size = 1
 
     # Group seats by department into queues
     dept_queues = defaultdict(deque)
@@ -278,19 +296,23 @@ def _reorder_hall_seats_by_bench(seats):
 
         depts = sort_depts()
 
-        # If at least two departments available, pair them
-        if len(depts) >= 2:
-            d1, d2 = depts[0], depts[1]
-            reordered.append(dept_queues[d1].popleft())
-            reordered.append(dept_queues[d2].popleft())
-        else:
-            # Only one department left: best-effort fill
-            d = depts[0]
-            reordered.append(dept_queues[d].popleft())
-            if dept_queues[d]:
-                reordered.append(dept_queues[d].popleft())
-            else:
+        # Build one bench with as much department diversity as possible
+        bench = []
+        for d in depts:
+            if len(bench) >= bench_size:
                 break
+            if dept_queues.get(d):
+                bench.append(dept_queues[d].popleft())
+
+        # If bench not full, fill with remaining students (best-effort)
+        if len(bench) < bench_size:
+            for d in sort_depts():
+                while len(bench) < bench_size and dept_queues.get(d):
+                    bench.append(dept_queues[d].popleft())
+                if len(bench) >= bench_size:
+                    break
+
+        reordered.extend(bench)
 
     return reordered
 

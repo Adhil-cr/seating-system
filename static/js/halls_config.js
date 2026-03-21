@@ -89,6 +89,7 @@ function createHallBlock(index) {
         <select data-field="spb" name="seats_per_bench">
           <option value="1">1</option>
           <option value="2">2</option>
+          <option value="3">3</option>
         </select>
       </div>
     </div>
@@ -111,6 +112,7 @@ function createHallBlock(index) {
   block.querySelector('.hfb-remove')?.addEventListener('click', () => {
     block.remove();
     renumberHallBlocks();
+    window.updateTotalCapacity?.();
   });
 
   return block;
@@ -135,6 +137,7 @@ function resetHallBlocks() {
   const block = createHallBlock(1);
   container.appendChild(block);
   window.updateCapacity(block);
+  window.updateTotalCapacity?.();
 }
 
 // SECTION: Save Halls
@@ -275,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.updateCapacity(container?.querySelector('.hall-form-block'));
+  window.updateTotalCapacity?.();
 
   document.getElementById('btn-add-hall')?.addEventListener('click', () => {
     const block = createHallBlock(document.querySelectorAll('.hall-form-block').length + 1);

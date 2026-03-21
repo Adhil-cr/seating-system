@@ -139,8 +139,24 @@ def generate_seating(request):
     # -----------------------------
     # STEP 1: Run full algorithm pipeline
     # -----------------------------
+    max_subject_per_hall = data.get("max_subject_per_hall")
+    relax_subject_limit = data.get("relax_subject_limit")
+    if relax_subject_limit:
+        max_subject_per_hall = total_students
+    elif max_subject_per_hall is not None:
+        try:
+            max_subject_per_hall = int(max_subject_per_hall)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "max_subject_per_hall must be an integer"}, status=400)
+        if max_subject_per_hall <= 0:
+            return JsonResponse({"error": "max_subject_per_hall must be positive"}, status=400)
+
     try:
-        csv_output = run_full_allocation_pipeline(exam, halls=halls_qs)
+        csv_output = run_full_allocation_pipeline(
+            exam,
+            halls=halls_qs,
+            max_subject_per_hall=max_subject_per_hall
+        )
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
     except Exception:

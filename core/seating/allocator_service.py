@@ -12,7 +12,7 @@ from halls.models import Hall
 from students.models import Student
 
 
-def run_full_allocation_pipeline(exam, halls=None):
+def run_full_allocation_pipeline(exam, halls=None, max_subject_per_hall=None):
 
     base_dir = settings.BASE_DIR
 
@@ -115,6 +115,7 @@ def run_full_allocation_pipeline(exam, halls=None):
         raise ValueError("No halls available for allocation.")
 
     hall_capacities = [hall.capacity for hall in halls]
+    hall_bench_sizes = [int(hall.seats_per_bench) for hall in halls]
 
     exam_config = {
         "exam_date": str(exam.date),
@@ -140,7 +141,8 @@ def run_full_allocation_pipeline(exam, halls=None):
         "number_of_halls": halls.count(),
         "hall_capacity": min(hall_capacities),
         "hall_capacities": hall_capacities,
-        "max_subject_per_hall": 12
+        "hall_bench_sizes": hall_bench_sizes,
+        "max_subject_per_hall": max_subject_per_hall or 12
     }
 
     result_csv = allocate_seating(
