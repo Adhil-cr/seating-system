@@ -2,42 +2,65 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>SIGN UP PAGE</title>
+        <!-- CHANGED: benchmap branding -->
+        <title>Sign up — benchmap</title>
+        <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
         <link rel="stylesheet" href="{% static 'css/main.css' %}">
     </head>
-<body><div class="auth-container">
-    <div class="auth-card">
+<body class="auth-page">
+    <div class="auth-shell">
+        <div class="auth-info">
+            <span class="auth-highlight">Exam Seating System</span>
+            <h1>Create your admin workspace in minutes</h1>
+            <p>
+                Set up your account to start uploading student data, creating exams,
+                and generating seating arrangements.
+            </p>
+        </div>
+        <div class="auth-card">
+            <!-- CHANGED: benchmap branding -->
+            <div class="auth-brand">
+                <div class="auth-logo-wrap">
+                    <img src="{% static 'images/benchmap_logo.png' %}"
+                         alt="benchmap"
+                         class="auth-logo-img">
+                </div>
+                <h1 class="auth-brand-name">benchmap</h1>
+                <p class="auth-brand-sub">Exam seating allocation system</p>
+            </div>
 
-        <h2>Welcome Back</h2>
-        <p class="auth-subtitle">Sign in</p>
+            <h2>Create Account</h2>
+            <p class="auth-subtitle">Sign up to get started</p>
 
-        <form method="post" action="{% url 'signup' %}">
-            {% csrf_token %}
-           <label>Full Name</label>
-            <input type="text" name="full_name" required>
+            <form method="post" action="{% url 'signup' %}">
+                {% csrf_token %}
+                <label>Full Name</label>
+                <input type="text" name="full_name" required>
 
-            <label>Email</label>
-            <input type="email" name="email" required>
+                <label>Email</label>
+                <input type="email" name="email" required>
 
-            <label>Password</label>
-            <input type="password" name="password" required>
+                <label>Password</label>
+                <input type="password" name="password" required>
 
-            <label>Confirm Password</label>
-            <input type="password" name="password_confirm" required>
+                <label>Confirm Password</label>
+                <input type="password" name="password_confirm" required>
 
-            <button class="btn-primary full-width">
-                Create Account
-            </button>
-        </form>
+                <button class="btn-primary full-width">
+                    Create Account
+                </button>
+            </form>
 
-        {% if error %}
-        <p class="auth-error">{{ error }}</p>
-        {% endif %}
+            {% if error %}
+            <p class="auth-error">{{ error }}</p>
+            {% endif %}
 
-       
-
+            <p class="auth-footer">
+                Already have an account?
+                <a href="{% url 'login' %}">Log in</a>
+            </p>
+        </div>
     </div>
-</div>
-<script src="{% static 'js/signup.js' %}"></script>
+    <script src="{% static 'js/signup.js' %}"></script>
 </body>
 </html>

@@ -3,7 +3,9 @@
 <html>
 
 <head>
-    <title>Student Upload</title>
+    <!-- CHANGED: benchmap branding -->
+    <title>Upload students — benchmap</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
@@ -61,9 +63,15 @@
     <!-- Sidebar -->
     <aside class="sidebar">
 
-<div class="logo">
-<i data-lucide="graduation-cap"></i>
-<span>Seating System</span>
+<!-- CHANGED: benchmap branding -->
+<div class="sb-brand">
+<div class="sb-logo-mark">
+<img src="{% static 'images/benchmap_logo.png' %}" alt="benchmap logo" class="sb-logo-img">
+</div>
+<div class="sb-brand-text">
+<span class="sb-brand-name">benchmap</span>
+<span class="sb-brand-tag">Seating system</span>
+</div>
 </div>
 
 <div class="menu-section">
@@ -133,7 +141,8 @@ User Profile
         <header class="header">
 
             <div class="header-left">
-                <h3>College Exam Seating Allocation System</h3>
+                <!-- CHANGED: benchmap branding -->
+                <span class="topbar-page-title">Upload students</span>
             </div>
 
             <div class="header-right">
