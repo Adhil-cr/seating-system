@@ -352,6 +352,28 @@ def export_pdf(request):
     if not seats.exists():
         return JsonResponse({"error": "No seating generated"}, status=404)
 
+    # EXPORT: hall metadata
+    hall_meta = {}
+    for seat in seats:
+        hall_name = seat.hall.name
+        if hall_name not in hall_meta:
+            hall_meta[hall_name] = {
+                "rows": seat.hall.rows,
+                "cols": seat.hall.columns,
+                "seats_per_bench": seat.hall.seats_per_bench,
+            }
+
+    # EXPORT: hall metadata
+    hall_meta = {}
+    for seat in seats:
+        hall_name = seat.hall.name
+        if hall_name not in hall_meta:
+            hall_meta[hall_name] = {
+                "rows": seat.hall.rows,
+                "cols": seat.hall.columns,
+                "seats_per_bench": seat.hall.seats_per_bench,
+            }
+
     # EXPORT: subject codes list
     subject_codes = list(getattr(exam, "subject_codes", []) or [])
     if not subject_codes:
@@ -474,7 +496,7 @@ def export_pdf(request):
 
     # EXPORT: summary table data
     dept_order = ["AE", "ME", "EEE", "CT", "EC", "CE"]
-    summary_rows = [["Hall", "Students", "AE", "ME", "EEE", "CT", "EC", "CE", "Subjects"]]
+    summary_rows = [["Hall", "Seats/Bench", "Students", "AE", "ME", "EEE", "CT", "EC", "CE", "Subjects"]]
     total_counts = {abbr: 0 for abbr in dept_order}
     total_students_sum = 0
 
@@ -493,8 +515,10 @@ def export_pdf(request):
                     subjects_set.add(code)
         for abbr in dept_order:
             total_counts[abbr] += dept_counts[abbr]
+        seats_per_bench = hall_meta.get(hall_name, {}).get("seats_per_bench", 1)
         summary_rows.append([
             hall_name,
+            seats_per_bench,
             hall_count,
             dept_counts["AE"],
             dept_counts["ME"],
@@ -507,6 +531,7 @@ def export_pdf(request):
 
     summary_rows.append([
         "TOTAL",
+        "",
         total_students_sum,
         total_counts["AE"],
         total_counts["ME"],
@@ -518,15 +543,16 @@ def export_pdf(request):
     ])
 
     summary_col_widths = [
-        12 * mm,
-        14 * mm,
+        12 * mm,  # Hall
+        20 * mm,  # Seats/Bench
+        14 * mm,  # Students
         13 * mm,
         13 * mm,
         13 * mm,
         13 * mm,
         13 * mm,
         13 * mm,
-        usable_width - (12 + 14 + 13 * 6) * mm,
+        usable_width - (12 + 20 + 14 + 13 * 6) * mm,
     ]
     summary_table = Table(summary_rows, colWidths=summary_col_widths)
     summary_style = [
@@ -566,8 +592,12 @@ def export_pdf(request):
         other_depts = sorted([abbr for abbr in dept_counts if abbr not in active_depts])
         active_depts.extend(other_depts)
 
+        seats_per_bench = hall_meta.get(hall_name, {}).get("seats_per_bench", 1)
         header_table = Table(
-            [[f"HALL  {hall_name}", f"{exam.date}  ·  {exam.session}  ·  {hall_count} students"]],
+            [[
+                f"HALL  {hall_name}",
+                f"{exam.date}  ·  {exam.session}  ·  {hall_count} students  ·  {seats_per_bench} seats/bench"
+            ]],
             colWidths=[50 * mm, usable_width - 50 * mm],
         )
         header_table.setStyle(TableStyle([
@@ -741,6 +771,17 @@ def export_excel(request):
     if not seats.exists():
         return JsonResponse({"error": "No seating generated"}, status=404)
 
+    # EXPORT: hall metadata
+    hall_meta = {}
+    for seat in seats:
+        hall_name = seat.hall.name
+        if hall_name not in hall_meta:
+            hall_meta[hall_name] = {
+                "rows": seat.hall.rows,
+                "cols": seat.hall.columns,
+                "seats_per_bench": seat.hall.seats_per_bench,
+            }
+
     # EXPORT: subject codes list
     subject_codes = list(getattr(exam, "subject_codes", []) or [])
     if not subject_codes:
@@ -802,21 +843,21 @@ def export_excel(request):
     border_grey = Border(left=thin_grey, right=thin_grey, top=thin_grey, bottom=thin_grey)
 
     # EXPORT: summary header rows
-    ws.merge_cells("A1:J1")
+    ws.merge_cells("A1:K1")
     ws["A1"] = f"{exam.name}  —  {exam.date}  |  Session: {exam.session}"
     ws["A1"].font = Font(name="Arial", size=14, bold=True, color="FFFFFF")
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws["A1"].fill = PatternFill("solid", fgColor=_xl_color("#1F3864"))
     ws.row_dimensions[1].height = 32
 
-    ws.merge_cells("A2:J2")
+    ws.merge_cells("A2:K2")
     ws["A2"] = f"Subjects: {', '.join(subject_codes)}"
     ws["A2"].font = Font(name="Arial", size=10, color=_xl_color("#1F3864"))
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
     ws["A2"].fill = PatternFill("solid", fgColor=_xl_color("#D6E4F0"))
     ws.row_dimensions[2].height = 18
 
-    ws.merge_cells("A3:J3")
+    ws.merge_cells("A3:K3")
     ws["A3"] = (
         "Department colour key:   AE = Automobile   ME = Mechanical   "
         "EEE = Elec & Electronics   CT = Computer   EC = Electronics & Comm   CE = Civil"
@@ -827,7 +868,7 @@ def export_excel(request):
     ws.row_dimensions[3].height = 16
 
     # EXPORT: summary headers
-    headers = ["Hall", "Total Students", "AE", "ME", "EEE", "CT", "EC", "CE", "Subjects", "Session"]
+    headers = ["Hall", "Seats/Bench", "Total Students", "AE", "ME", "EEE", "CT", "EC", "CE", "Subjects", "Session"]
     ws.append([])
     ws.append(headers)
     header_row = 5
@@ -862,8 +903,10 @@ def export_excel(request):
         for abbr in dept_order:
             total_counts[abbr] += dept_counts[abbr]
 
+        seats_per_bench = hall_meta.get(hall_name, {}).get("seats_per_bench", 1)
         row_values = [
             hall_name,
+            seats_per_bench,
             hall_count,
             dept_counts["AE"],
             dept_counts["ME"],
@@ -876,14 +919,14 @@ def export_excel(request):
         ]
         for col_idx, value in enumerate(row_values, start=1):
             cell = ws.cell(row=current_row, column=col_idx, value=value)
-            if col_idx == 9:
+            if col_idx == 10:
                 cell.alignment = Alignment(horizontal="left", vertical="center")
             else:
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.font = Font(name="Arial", size=10)
             cell.border = border_grey
         fill_color = "#EBF3FB" if idx % 2 == 1 else "#FFFFFF"
-        for col_idx in range(1, 11):
+        for col_idx in range(1, 12):
             ws.cell(row=current_row, column=col_idx).fill = PatternFill("solid", fgColor=_xl_color(fill_color))
         current_row += 1
 
@@ -891,6 +934,7 @@ def export_excel(request):
     total_row = current_row
     total_values = [
         "TOTAL",
+        "",
         total_students_sum,
         total_counts["AE"],
         total_counts["ME"],
@@ -909,7 +953,7 @@ def export_excel(request):
         cell.border = border_grey
 
     # EXPORT: summary column widths
-    column_widths = [8, 14, 8, 8, 8, 8, 8, 8, 35, 10]
+    column_widths = [8, 12, 14, 8, 8, 8, 8, 8, 8, 35, 10]
     for idx, width in enumerate(column_widths, start=1):
         ws.column_dimensions[chr(64 + idx)].width = width
 
@@ -924,9 +968,11 @@ def export_excel(request):
         dept_ordered.extend(sorted([abbr for abbr in dept_counts if abbr not in dept_ordered]))
 
         sheet = wb.create_sheet(title=f"Hall {hall_name}")
+        seats_per_bench = hall_meta.get(hall_name, {}).get("seats_per_bench", 1)
         sheet.merge_cells("A1:H1")
         sheet["A1"] = (
-            f"HALL  {hall_name}   ·   {exam.date}   ·   Session: {exam.session}   ·   {hall_count} Students"
+            f"HALL  {hall_name}   ·   {exam.date}   ·   Session: {exam.session}   ·   "
+            f"{hall_count} Students   ·   {seats_per_bench} seats/bench"
         )
         sheet["A1"].font = Font(name="Arial", size=12, bold=True, color="FFFFFF")
         sheet["A1"].alignment = Alignment(horizontal="left", vertical="center")
