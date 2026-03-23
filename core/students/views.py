@@ -11,8 +11,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.utils import OperationalError, ProgrammingError
 from dashboard.models import ActivityLog
-from .models import Student, Subject, UploadHistory
+from .models import Student, Subject, UploadHistory, StorageArtifact
 from seating.algorithms.csv_normalizer import normalize_and_sort_csv
+from utils.b2_storage import b2_enabled, build_prefix, timestamp_prefix, upload_file
 
 
 def _normalize_header(value):
@@ -137,7 +138,8 @@ def upload_students(request):
     if not file:
         return JsonResponse({"error": "No file"}, status=400)
 
-    upload_dir = os.path.join(settings.BASE_DIR, "media", "uploads")
+    media_root = getattr(settings, 'MEDIA_ROOT', os.path.join(settings.BASE_DIR, 'media'))
+    upload_dir = os.path.join(media_root, 'uploads')
     os.makedirs(upload_dir, exist_ok=True)
 
     filename = os.path.basename(file.name)
@@ -147,9 +149,9 @@ def upload_students(request):
         for chunk in file.chunks():
             destination.write(chunk)
 
-    normalized_dir = os.path.join(settings.BASE_DIR, "media")
+    normalized_dir = media_root
     os.makedirs(normalized_dir, exist_ok=True)
-    normalized_path = os.path.join(normalized_dir, "normalized_students.csv")
+    normalized_path = os.path.join(normalized_dir, 'normalized_students.csv')
 
     try:
         _prepare_csv_for_normalizer(upload_path)
@@ -232,6 +234,26 @@ def upload_students(request):
         )
     except (OperationalError, ProgrammingError):
         pass
+
+    if b2_enabled():
+        prefix = build_prefix('uploads', f'user_{request.user.id}', timestamp_prefix())
+        original_key = build_prefix(prefix, filename)
+        normalized_key = build_prefix(prefix, 'normalized_students.csv')
+
+        if upload_file(upload_path, original_key):
+            StorageArtifact.objects.create(
+                user=request.user,
+                kind=StorageArtifact.KIND_UPLOAD_ORIGINAL,
+                b2_key=original_key,
+                file_name=filename
+            )
+        if upload_file(normalized_path, normalized_key):
+            StorageArtifact.objects.create(
+                user=request.user,
+                kind=StorageArtifact.KIND_UPLOAD_NORMALIZED,
+                b2_key=normalized_key,
+                file_name='normalized_students.csv'
+            )
 
     UploadHistory.objects.create(
         user=request.user,

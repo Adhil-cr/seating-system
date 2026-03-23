@@ -44,3 +44,44 @@ class UploadHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.file_name}"
+
+
+class StorageArtifact(models.Model):
+    KIND_UPLOAD_ORIGINAL = "upload_original"
+    KIND_UPLOAD_NORMALIZED = "upload_normalized"
+    KIND_RUNTIME_INPUT = "runtime_input"
+    KIND_RUNTIME_OUTPUT = "runtime_output"
+
+    KIND_CHOICES = [
+        (KIND_UPLOAD_ORIGINAL, "Upload Original"),
+        (KIND_UPLOAD_NORMALIZED, "Upload Normalized"),
+        (KIND_RUNTIME_INPUT, "Runtime Input"),
+        (KIND_RUNTIME_OUTPUT, "Runtime Output"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="storage_artifacts"
+    )
+    exam = models.ForeignKey(
+        "exams.Exam",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storage_artifacts"
+    )
+    allocation = models.ForeignKey(
+        "seating.SeatingAllocation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storage_artifacts"
+    )
+    kind = models.CharField(max_length=30, choices=KIND_CHOICES)
+    b2_key = models.CharField(max_length=512)
+    file_name = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.kind} - {self.b2_key}"

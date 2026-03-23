@@ -23,3 +23,6 @@ students.csv
 
 # Runtime data
 core/runtime_data/
+
+!media/.gitkeep
+!core/runtime_data/.gitkeep

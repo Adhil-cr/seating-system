@@ -7,17 +7,19 @@ from .algorithms.csv_normalizer import normalize_and_sort_csv
 from .algorithms.exam_session_preparer import prepare_exam_session
 from .algorithms.seating_allocator import allocate_seating
 
+from utils.b2_storage import b2_enabled, build_prefix, timestamp_prefix, upload_file
 from exams.models import Exam
 from halls.models import Hall
-from students.models import Student
+from students.models import Student, StorageArtifact
 
 
 def run_full_allocation_pipeline(exam, halls=None, max_subject_per_hall=None):
 
     base_dir = settings.BASE_DIR
+    runtime_root = os.getenv("RUNTIME_DATA_ROOT", os.path.join(base_dir, "runtime_data"))
 
-    input_dir = os.path.join(base_dir, "runtime_data/input")
-    output_dir = os.path.join(base_dir, "runtime_data/output")
+    input_dir = os.path.join(runtime_root, "input")
+    output_dir = os.path.join(runtime_root, "output")
 
     os.makedirs(input_dir, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
@@ -150,5 +152,32 @@ def run_full_allocation_pipeline(exam, halls=None, max_subject_per_hall=None):
         output_dir=output_dir,
         seating_config=seating_config
     )
+
+    if b2_enabled():
+        prefix = build_prefix(
+            "runtime_data",
+            f"user_{exam.user_id}",
+            f"exam_{exam.id}",
+            timestamp_prefix()
+        )
+        # upload input + output csvs
+        for folder in (input_dir, output_dir):
+            kind = (
+                StorageArtifact.KIND_RUNTIME_INPUT
+                if folder == input_dir
+                else StorageArtifact.KIND_RUNTIME_OUTPUT
+            )
+            for name in os.listdir(folder):
+                if not name.lower().endswith(".csv"):
+                    continue
+                key = build_prefix(prefix, name)
+                if upload_file(os.path.join(folder, name), key):
+                    StorageArtifact.objects.create(
+                        user=exam.user,
+                        exam=exam,
+                        kind=kind,
+                        b2_key=key,
+                        file_name=name
+                    )
 
     return result_csv
