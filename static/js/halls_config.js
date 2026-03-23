@@ -230,17 +230,19 @@ function renderHallList() {
 
   halls.forEach(hall => {
     const item = document.createElement('div');
-    item.className = 'hall-item';
+    item.className = 'exam-item hall-item';
     item.dataset.id = hall.id;
     item.dataset.name = hall.name || '';
     item.dataset.capacity = hall.capacity ?? 0;
     item.innerHTML = `
-      <div class="hi-left">
-        <div class="hi-name hall-name">${hall.name}</div>
-        <div class="hi-spec">${hall.rows} rows · ${hall.columns} cols · ${hall.seats_per_bench} seats/bench</div>
-        <div class="hi-cap">Capacity ${hall.capacity}</div>
+      <div class="ei-top">
+        <div class="ei-name hall-name">${hall.name}</div>
+        <button class="cfg-btn cfg-btn-danger-ghost ei-delete hi-delete" data-id="${hall.id}">Delete</button>
       </div>
-      <button class="cfg-btn cfg-btn-danger-ghost hi-delete" data-id="${hall.id}">Delete</button>
+      <div class="ei-meta">${hall.rows} rows · ${hall.columns} cols · ${hall.seats_per_bench} seats/bench</div>
+      <div class="ei-bottom">
+        <span class="ei-tag">Capacity ${hall.capacity}</span>
+      </div>
     `;
     listEl.appendChild(item);
   });

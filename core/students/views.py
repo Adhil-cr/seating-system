@@ -29,7 +29,21 @@ def _find_column(columns, candidates):
 
 
 def _prepare_csv_for_normalizer(path):
+    with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+        first_line = handle.readline()
+    if ";" in first_line and "," not in first_line:
+        raise ValueError(
+            "Invalid CSV format: file appears semicolon-separated. "
+            "Please save as a comma-separated CSV using the sample template."
+        )
+
     df = pd.read_csv(path)
+
+    if any(_normalize_header(col) == "#" for col in df.columns):
+        raise ValueError(
+            "Invalid CSV format: remove the leading '#' column "
+            "and use the sample template headers."
+        )
 
     reg_col = _find_column(
         df.columns,
@@ -48,8 +62,20 @@ def _prepare_csv_for_normalizer(path):
         ["semester", "sem", "semister"]
     )
 
-    if not reg_col or not name_col:
-        raise ValueError("Missing required columns for Register No or Student Name.")
+    missing = []
+    if not reg_col:
+        missing.append("Register No")
+    if not name_col:
+        missing.append("Student Name")
+    if not dept_col:
+        missing.append("Branch")
+    if not sem_col:
+        missing.append("Semester")
+    if missing:
+        raise ValueError(
+            "Invalid CSV format. Missing columns: "
+            f"{', '.join(missing)}. Use the sample template headers."
+        )
 
     renames = {
         reg_col: "Register No",
@@ -61,12 +87,6 @@ def _prepare_csv_for_normalizer(path):
         renames[sem_col] = "Semester"
 
     df.rename(columns=renames, inplace=True)
-
-    if "Branch" not in df.columns:
-        df["Branch"] = "Unknown"
-
-    if "Semester" not in df.columns:
-        df["Semester"] = 1
 
     subject_cols = [
         col for col in df.columns
