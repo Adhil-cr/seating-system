@@ -176,14 +176,21 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(PROJECT_DIR / 'media'))
 
+# Blackblaze Block
 B2_STORAGE_ENABLED = os.getenv("B2_STORAGE_ENABLED", "false").lower() == "true"
+
 if B2_STORAGE_ENABLED:
     AWS_ACCESS_KEY_ID = os.getenv("B2_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY = os.getenv("B2_APP_KEY", "")
     AWS_STORAGE_BUCKET_NAME = os.getenv("B2_BUCKET", "")
     AWS_S3_ENDPOINT_URL = os.getenv("B2_ENDPOINT", "")
     AWS_S3_REGION_NAME = os.getenv("B2_REGION", "")
+
+    AWS_S3_ADDRESSING_STYLE = "path"   # 🔴 IMPORTANT
+    AWS_QUERYSTRING_AUTH = False       # 🔴 IMPORTANT
+
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
 
 # Email (password reset)
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")
