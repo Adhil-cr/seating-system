@@ -118,6 +118,7 @@ def run_full_allocation_pipeline(exam, halls=None, max_subject_per_hall=None):
 
     hall_capacities = [hall.capacity for hall in halls]
     hall_bench_sizes = [int(hall.seats_per_bench) for hall in halls]
+    hall_columns = [int(hall.columns) for hall in halls]
 
     exam_config = {
         "exam_date": str(exam.date),
@@ -144,6 +145,7 @@ def run_full_allocation_pipeline(exam, halls=None, max_subject_per_hall=None):
         "hall_capacity": min(hall_capacities),
         "hall_capacities": hall_capacities,
         "hall_bench_sizes": hall_bench_sizes,
+        "hall_columns": hall_columns,
         "max_subject_per_hall": max_subject_per_hall or 12
     }
 

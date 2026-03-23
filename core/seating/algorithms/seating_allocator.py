@@ -1,5 +1,6 @@
 import os
 import math
+import logging
 import pandas as pd
 from collections import defaultdict, deque
 
@@ -56,6 +57,7 @@ def allocate_seating(
     hall_capacity = seating_config.get("hall_capacity")
     hall_capacities = seating_config.get("hall_capacities")
     hall_bench_sizes = seating_config.get("hall_bench_sizes")
+    hall_columns = seating_config.get("hall_columns")
     max_subject_per_hall = seating_config["max_subject_per_hall"]
 
     if hall_capacities:
@@ -64,6 +66,9 @@ def allocate_seating(
     if hall_bench_sizes:
         if len(hall_bench_sizes) != number_of_halls:
             raise ValueError("Hall bench sizes count does not match number_of_halls.")
+    if hall_columns:
+        if len(hall_columns) != number_of_halls:
+            raise ValueError("Hall columns count does not match number_of_halls.")
 
     # ----------------------------
     # Step 3: Allocate students to halls (UNCHANGED LOGIC)
@@ -116,6 +121,7 @@ def allocate_seating(
         hall_capacity=hall_capacity,
         hall_capacities=hall_capacities,
         hall_bench_sizes=hall_bench_sizes,
+        hall_columns=hall_columns,
         max_subject_per_hall=effective_max_subject_per_hall
     )
 
@@ -125,7 +131,8 @@ def allocate_seating(
     for hall in halls:
         hall["seats"] = _reorder_hall_seats_by_bench(
             hall["seats"],
-            bench_size=hall.get("bench_size", 2)
+            bench_size=hall.get("bench_size", 2),
+            columns=hall.get("columns")
         )
 
     # ----------------------------
@@ -168,6 +175,7 @@ def _allocate_students_to_halls(
     hall_capacity: int,
     hall_capacities,
     hall_bench_sizes,
+    hall_columns,
     max_subject_per_hall: int
 ):
     """
@@ -183,6 +191,9 @@ def _allocate_students_to_halls(
         capacity = hall_capacity
         if hall_capacities:
             capacity = hall_capacities[hall_id - 1]
+        columns = None
+        if hall_columns:
+            columns = hall_columns[hall_id - 1]
         bench_size = 2
         if hall_bench_sizes:
             bench_size = int(hall_bench_sizes[hall_id - 1]) or 2
@@ -191,6 +202,7 @@ def _allocate_students_to_halls(
         halls.append({
             "hall_id": hall_id,
             "capacity": capacity,
+            "columns": columns,
             "bench_size": bench_size,
             "occupied": 0,
             "subject_counts": defaultdict(int),
@@ -275,7 +287,7 @@ def _allocate_students_to_halls(
     return halls
 
 
-def _reorder_hall_seats_by_bench(seats, bench_size=2):
+def _reorder_hall_seats_by_bench(seats, bench_size=2, columns=None):
     """
     Reorder seats so that no two students of the same department
     sit on the same bench (bench_size seats per bench).
@@ -295,6 +307,85 @@ def _reorder_hall_seats_by_bench(seats, bench_size=2):
     dept_queues = defaultdict(deque)
     for s in seats:
         dept_queues[s["department"]].append(s)
+
+    if bench_size == 1:
+        # Round-robin by department to avoid large departments dominating early seats.
+        dept_order = sorted(
+            dept_queues.keys(),
+            key=lambda d: (-len(dept_queues[d]), d)
+        )
+        dept_cycle = deque(dept_order)
+        ordered = []
+
+        while dept_cycle:
+            dept = dept_cycle.popleft()
+            queue = dept_queues.get(dept)
+            if not queue:
+                continue
+            ordered.append(queue.popleft())
+            if queue:
+                dept_cycle.append(dept)
+
+        total_seats = len(ordered)
+        if total_seats == 0:
+            return ordered
+
+        if columns is None or int(columns) < 1:
+            columns = total_seats
+
+        columns = int(columns)
+        rows = total_seats // columns
+        if total_seats % columns != 0:
+            rows += 1
+        rows = max(rows, 1)
+
+        grid = [[None for _ in range(columns)] for _ in range(rows)]
+
+        def _subjects(student):
+            subjects = student.get("all_subjects") or [student.get("subject_code")]
+            return {
+                str(code).strip().replace(".0", "")
+                for code in subjects
+                if str(code).strip()
+            }
+
+        def _has_conflict(a, b):
+            if not a or not b:
+                return False
+            if a.get("department") != b.get("department"):
+                return False
+            return bool(_subjects(a) & _subjects(b))
+
+        def _is_safe(r, c, student):
+            if c - 1 >= 0 and _has_conflict(student, grid[r][c - 1]):
+                return False
+            if r - 1 >= 0 and _has_conflict(student, grid[r - 1][c]):
+                return False
+            return True
+
+        remaining = ordered[:]
+        reordered = []
+        logger = logging.getLogger(__name__)
+
+        for r in range(rows):
+            for c in range(columns):
+                if not remaining:
+                    break
+                chosen_idx = None
+                for idx, candidate in enumerate(remaining):
+                    if _is_safe(r, c, candidate):
+                        chosen_idx = idx
+                        break
+                if chosen_idx is None:
+                    chosen_idx = 0
+                    logger.warning(
+                        "Adjacency constraint fallback in bench_size=1 hall placement."
+                    )
+                chosen = remaining.pop(chosen_idx)
+                grid[r][c] = chosen
+                reordered.append(chosen)
+
+        return reordered
 
     # Sort departments by remaining count (descending)
     def sort_depts():
