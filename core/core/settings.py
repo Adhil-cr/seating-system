@@ -42,6 +42,10 @@ CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', '')
 if DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ['*']
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = not DEBUG
+
 
 # Application definition
 
@@ -52,6 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     "accounts",
     "students",
     "exams",
@@ -107,6 +112,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "/"
 
+pg_sslmode = os.getenv("PGSSLMODE", "")
 
 DATABASES = {
     'default': {
@@ -116,6 +122,7 @@ DATABASES = {
         'PASSWORD': os.getenv("DB_PASSWORD"),
         'HOST': os.getenv("DB_HOST"),
         'PORT': os.getenv("DB_PORT"),
+        'OPTIONS': {"sslmode": pg_sslmode} if pg_sslmode else {},
     }
 }
 
@@ -158,7 +165,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
-STATIC_ROOT = PROJECT_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATICFILES_DIRS = [
     PROJECT_DIR / "static",
@@ -168,6 +175,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(PROJECT_DIR / 'media'))
+
+B2_STORAGE_ENABLED = os.getenv("B2_STORAGE_ENABLED", "false").lower() == "true"
+if B2_STORAGE_ENABLED:
+    AWS_ACCESS_KEY_ID = os.getenv("B2_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.getenv("B2_APP_KEY", "")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("B2_BUCKET", "")
+    AWS_S3_ENDPOINT_URL = os.getenv("B2_ENDPOINT", "")
+    AWS_S3_REGION_NAME = os.getenv("B2_REGION", "")
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
 # Email (password reset)
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")
