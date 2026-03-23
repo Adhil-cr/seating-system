@@ -12,8 +12,8 @@ from django.db import transaction
 from django.db.utils import OperationalError, ProgrammingError
 from dashboard.models import ActivityLog
 from .models import Student, Subject, UploadHistory, StorageArtifact
-from seating.algorithms.csv_normalizer import normalize_and_sort_csv
-from utils.b2_storage import b2_enabled, build_prefix, timestamp_prefix, upload_file
+from seating.algorithms.csv_normalizer import normalize_and_sort_df, normalize_and_sort_csv
+from utils.b2_storage import b2_enabled, build_prefix, timestamp_prefix, upload_bytes, upload_file, upload_fileobj
 
 
 def _normalize_header(value):
@@ -30,13 +30,98 @@ def _find_column(columns, candidates):
 
 
 def _prepare_csv_for_normalizer(path):
-    with open(path, "r", encoding="utf-8", errors="ignore") as handle:
-        first_line = handle.readline()
-    if ";" in first_line and "," not in first_line:
+    df = pd.read_csv(path)
+    return _prepare_csv_for_normalizer_df(df)
+
+
+def _prepare_csv_for_normalizer_df(df):
+    if any(_normalize_header(col) == "#" for col in df.columns):
         raise ValueError(
-            "Invalid CSV format: file appears semicolon-separated. "
-            "Please save as a comma-separated CSV using the sample template."
+            "Invalid CSV format: remove the leading '#' column "
+            "and use the sample template headers."
         )
+
+    reg_col = _find_column(
+        df.columns,
+        ["register no", "register_no", "reg no", "reg_no", "regno", "register number"]
+    )
+    name_col = _find_column(
+        df.columns,
+        ["student name", "student_name", "name"]
+    )
+    dept_col = _find_column(
+        df.columns,
+        ["branch", "department", "dept"]
+    )
+    sem_col = _find_column(
+        df.columns,
+        ["semester", "sem", "semister"]
+    )
+
+    missing = []
+    if not reg_col:
+        missing.append("Register No")
+    if not name_col:
+        missing.append("Student Name")
+    if not dept_col:
+        missing.append("Branch")
+    if not sem_col:
+        missing.append("Semester")
+    if missing:
+        raise ValueError(
+            "Invalid CSV format. Missing columns: "
+            f"{', '.join(missing)}. Use the sample template headers."
+        )
+
+    renames = {
+        reg_col: "Register No",
+        name_col: "Student Name",
+    }
+    if dept_col:
+        renames[dept_col] = "Branch"
+    if sem_col:
+        renames[sem_col] = "Semester"
+
+    df.rename(columns=renames, inplace=True)
+
+    subject_cols = [
+        col for col in df.columns
+        if _normalize_header(col).startswith("sub")
+    ]
+
+    if not subject_cols:
+        subject_col = _find_column(
+            df.columns,
+            ["subject_code", "subject codes", "subject", "subjects", "subject_codes"]
+        )
+        if not subject_col:
+            raise ValueError(
+                "Missing subject columns. Provide Sub1/Sub2... or subject_code."
+            )
+
+        subject_lists = []
+        for value in df[subject_col].fillna(""):
+            codes = [
+                s.strip().replace(".0", "")
+                for s in str(value).split(",")
+                if s.strip()
+            ]
+            subject_lists.append(codes)
+
+        max_len = max((len(items) for items in subject_lists), default=0)
+        if max_len == 0:
+            raise ValueError("No subject codes found in CSV.")
+
+        for idx in range(max_len):
+            col_name = f"Sub{idx + 1}"
+            df[col_name] = [
+                items[idx] if idx < len(items) else ""
+                for items in subject_lists
+            ]
+
+        df.drop(columns=[subject_col], inplace=True)
+
+    return df
 
     df = pd.read_csv(path)
 
@@ -139,32 +224,25 @@ def upload_students(request):
         return JsonResponse({"error": "No file"}, status=400)
 
     media_root = getattr(settings, 'MEDIA_ROOT', os.path.join(settings.BASE_DIR, 'media'))
-    upload_dir = os.path.join(media_root, 'uploads')
-    os.makedirs(upload_dir, exist_ok=True)
-
     filename = os.path.basename(file.name)
-    upload_path = os.path.join(upload_dir, filename)
-
-    with open(upload_path, "wb+") as destination:
-        for chunk in file.chunks():
-            destination.write(chunk)
-
-    normalized_dir = media_root
-    os.makedirs(normalized_dir, exist_ok=True)
-    normalized_path = os.path.join(normalized_dir, 'normalized_students.csv')
 
     try:
-        _prepare_csv_for_normalizer(upload_path)
-        normalize_and_sort_csv(
-            input_file_path=upload_path,
-            output_file_path=normalized_path
-        )
-    except (FileNotFoundError, ValueError) as exc:
+        file_bytes = file.read()
+        if not file_bytes:
+            return JsonResponse({"error": "Empty file"}, status=400)
+        first_line = file_bytes.splitlines()[0].decode("utf-8", errors="ignore") if file_bytes else ""
+        if ";" in first_line and "," not in first_line:
+            return JsonResponse({
+                "error": "Invalid CSV format: file appears semicolon-separated. Please save as a comma-separated CSV using the sample template."
+            }, status=400)
+
+        df_raw = pd.read_csv(pd.io.common.BytesIO(file_bytes))
+        df_prepped = _prepare_csv_for_normalizer_df(df_raw)
+        df = normalize_and_sort_df(df_prepped)
+    except (ValueError, FileNotFoundError) as exc:
         return JsonResponse({"error": str(exc)}, status=400)
     except Exception as exc:
         return JsonResponse({"error": f"Upload failed: {exc}"}, status=500)
-
-    df = pd.read_csv(normalized_path)
 
     required_cols = {"register_no", "student_name", "department", "semester", "subject_code"}
     if not required_cols.issubset(df.columns):
@@ -240,14 +318,15 @@ def upload_students(request):
         original_key = build_prefix(prefix, filename)
         normalized_key = build_prefix(prefix, 'normalized_students.csv')
 
-        if upload_file(upload_path, original_key):
+        if upload_bytes(file_bytes, original_key, content_type='text/csv'):
             StorageArtifact.objects.create(
                 user=request.user,
                 kind=StorageArtifact.KIND_UPLOAD_ORIGINAL,
                 b2_key=original_key,
                 file_name=filename
             )
-        if upload_file(normalized_path, normalized_key):
+        normalized_bytes = df.to_csv(index=False).encode('utf-8')
+        if upload_bytes(normalized_bytes, normalized_key, content_type='text/csv'):
             StorageArtifact.objects.create(
                 user=request.user,
                 kind=StorageArtifact.KIND_UPLOAD_NORMALIZED,

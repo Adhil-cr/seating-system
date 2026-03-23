@@ -72,3 +72,46 @@ def build_prefix(*parts: str) -> str:
 
 def timestamp_prefix() -> str:
     return datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+
+
+def upload_bytes(data: bytes, key: str, content_type: str | None = None):
+    if not b2_enabled():
+        return False
+
+    key = _apply_prefix(key)
+    extra = {"Body": data}
+    if content_type:
+        extra["ContentType"] = content_type
+
+    try:
+        client = _get_client()
+        client.put_object(Bucket=B2_BUCKET, Key=key, **extra)
+        return True
+    except (BotoCoreError, ClientError) as exc:
+        if B2_STRICT:
+            raise
+        print(f"B2 upload failed for {key}: {exc}")
+        return False
+
+
+def upload_fileobj(fileobj, key: str, content_type: str | None = None):
+    if not b2_enabled():
+        return False
+
+    key = _apply_prefix(key)
+    extra = {}
+    if content_type:
+        extra["ContentType"] = content_type
+
+    try:
+        client = _get_client()
+        if extra:
+            client.upload_fileobj(fileobj, B2_BUCKET, key, ExtraArgs=extra)
+        else:
+            client.upload_fileobj(fileobj, B2_BUCKET, key)
+        return True
+    except (BotoCoreError, ClientError) as exc:
+        if B2_STRICT:
+            raise
+        print(f"B2 upload failed for {key}: {exc}")
+        return False
