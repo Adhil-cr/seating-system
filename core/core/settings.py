@@ -123,9 +123,10 @@ DATABASES = {
         'HOST': os.getenv("DB_HOST"),
         'PORT': os.getenv("DB_PORT"),
         'OPTIONS': {"sslmode": pg_sslmode} if pg_sslmode else {},
+
+        'CONN_MAX_AGE': 600,  
     }
 }
-
 
 
 # Password validation
