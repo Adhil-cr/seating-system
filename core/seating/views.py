@@ -1,5 +1,6 @@
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from accounts.decorators import admin_required
 from students.models import Student
 from halls.models import Hall
@@ -10,6 +11,7 @@ import pandas as pd
 from django.db import transaction
 
 import json
+import re
 from io import BytesIO
 from json import JSONDecodeError
 
@@ -20,7 +22,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 
 # Excel
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
+from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from django.utils.text import slugify
 
@@ -68,6 +71,13 @@ def _export_filename(exam, ext):
     session = slugify(str(exam.session)) or "session"
     date = str(exam.date)
     return f"seating_{name}_{date}_{session}.{ext}"
+
+
+def _export_branch_filename(exam):
+    name = slugify(exam.name) or "exam"
+    session = slugify(str(exam.session)) or "session"
+    date = str(exam.date)
+    return f"branchwise_{name}_{date}_{session}.xlsx"
 
 
 # -------------------------
@@ -1078,5 +1088,273 @@ def export_excel(request):
     response["Content-Disposition"] = (
         f'attachment; filename="{_export_filename(exam, "xlsx")}"'
     )
+    wb.save(response)
+    return response
+
+
+# -------------------------
+# EXPORT BRANCH-WISE EXCEL
+# -------------------------
+
+@admin_required
+def export_branchwise_excel(request):
+    exam_id = request.GET.get("exam_id")
+    if not exam_id:
+        return JsonResponse({"error": "exam_id required"}, status=400)
+
+    exam = get_object_or_404(Exam, id=exam_id, user=request.user)
+    seats = (
+        Seat.objects.filter(allocation__exam=exam)
+        .select_related("hall", "student")
+        .order_by("hall__name", "row", "column")
+    )
+    if not seats.exists():
+        return JsonResponse({"error": "No seating generated"}, status=404)
+
+    def _normalize_sheet_name(value):
+        return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+    def _normalize_header(value):
+        text = str(value or "").strip().lower()
+        text = re.sub(r"[^a-z0-9]+", " ", text)
+        return text.strip()
+
+    def _find_header(ws):
+        max_row = min(ws.max_row, 60)
+        max_col = min(ws.max_column, 12)
+        for row in ws.iter_rows(min_row=1, max_row=max_row, max_col=max_col):
+            col_map = {}
+            for cell in row:
+                text = _normalize_header(cell.value)
+                if not text:
+                    continue
+                if "hall" in text and "hall" not in col_map:
+                    col_map["hall"] = cell.column
+                if "name" in text and "name" not in col_map:
+                    col_map["name"] = cell.column
+                if ("reg" in text or "register" in text or "prn" in text) and "reg" not in col_map:
+                    col_map["reg"] = cell.column
+                if ("sl" in text or "roll" in text) and "sl" not in col_map:
+                    col_map["sl"] = cell.column
+            if "name" in col_map and "hall" in col_map:
+                return row[0].row, col_map
+        return None, None
+
+    def _set_cell_value(ws, row, col, value):
+        cell = ws.cell(row=row, column=col)
+        if isinstance(cell, MergedCell):
+            return
+        cell.value = value
+
+    def _dept_to_branch(dept):
+        if not dept:
+            return ""
+        d = dept.strip().lower()
+        if "automobile" in d:
+            return "AU"
+        if "mechanical" in d:
+            return "ME"
+        if "civil" in d:
+            return "CE"
+        if "computer" in d:
+            return "CT"
+        if "electronics" in d and "communication" in d:
+            return "EC"
+        if "electrical" in d and "electronics" in d:
+            return "EE"
+        abbr = get_dept_abbr(dept)
+        if abbr == "AE":
+            return "AU"
+        if abbr == "EEE":
+            return "EE"
+        return abbr
+
+    def _normalize_semester(value):
+        if value is None:
+            return ""
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            match = re.search(r"\d+", str(value))
+            return int(match.group()) if match else str(value).strip()
+
+    def _reg_sort_key(value):
+        text = str(value or "").strip()
+        if not text:
+            return (1, "")
+        match = re.match(r"\d+", text)
+        if match:
+            return (0, int(match.group()), text)
+        return (1, text.lower())
+
+    students = {}
+    for seat in seats:
+        reg = str(seat.student.register_no).strip()
+        if not reg:
+            continue
+        if reg not in students:
+            students[reg] = {
+                "register_no": reg,
+                "name": seat.student.name,
+                "department": seat.student.department,
+                "semester": seat.student.semester,
+                "hall": seat.hall.name,
+            }
+
+    if not students:
+        return JsonResponse({"error": "No students found"}, status=404)
+
+    template_path = settings.PROJECT_DIR / "static" / "samples" / "total_student_list_template.xlsx"
+    if not template_path.exists():
+        return JsonResponse({"error": "Template not found"}, status=500)
+
+    wb = load_workbook(template_path)
+    sheet_lookup = {_normalize_sheet_name(name): name for name in wb.sheetnames}
+
+    def _branch_key_from_sheet(sheet_name):
+        key = _normalize_sheet_name(sheet_name)
+        match = re.search(r"s\\d+([a-z]+)$", key)
+        if match:
+            return match.group(1).upper()
+        return ""
+
+    def _update_semester_text(ws, new_sem):
+        if not new_sem:
+            return
+        new_sem = str(new_sem)
+        for row in ws.iter_rows():
+            for cell in row:
+                if isinstance(cell.value, str) and cell.value.strip():
+                    text = cell.value
+                    if re.search(r"\\bsemester\\b", text, re.IGNORECASE):
+                        text = re.sub(r"(semester\\s*:?\\s*)S?\\s*\\d+", r"\\1S " + new_sem, text, flags=re.IGNORECASE)
+                    text = re.sub(r"\\bS\\s*\\d+\\b", "S " + new_sem, text)
+                    text = re.sub(r"\\bS\\d+\\b", "S" + new_sem, text)
+                    cell.value = text
+
+    def _update_department_text(ws, dept_name):
+        if not dept_name:
+            return
+        for row in ws.iter_rows():
+            for cell in row:
+                if isinstance(cell.value, str) and cell.value.strip():
+                    text = cell.value
+                    updated = text
+                    if re.search(r"\\bdepartment\\b", updated, re.IGNORECASE):
+                        if re.search(r"department\\s*of", updated, re.IGNORECASE):
+                            updated = re.sub(
+                                r"(department\\s*of\\s*).*",
+                                r"\\1" + dept_name,
+                                updated,
+                                flags=re.IGNORECASE,
+                            )
+                        else:
+                            updated = re.sub(
+                                r"(department\\s*).*",
+                                r"\\1" + dept_name,
+                                updated,
+                                flags=re.IGNORECASE,
+                            )
+                    if re.search(r"\\bprogramme\\b", updated, re.IGNORECASE):
+                        updated = re.sub(
+                            r"(programme\\s*:?\\s*).*",
+                            r"\\1" + dept_name,
+                            updated,
+                            flags=re.IGNORECASE,
+                        )
+                    if updated != text:
+                        cell.value = updated
+
+    base_sheets = {}
+    for name in wb.sheetnames:
+        branch_key = _branch_key_from_sheet(name)
+        if branch_key and branch_key not in base_sheets:
+            base_sheets[branch_key] = name
+    default_sheet_name = wb.sheetnames[0] if wb.sheetnames else None
+
+    from collections import defaultdict
+    groups = defaultdict(list)
+    group_dept_name = {}
+    for student in students.values():
+        semester = _normalize_semester(student.get("semester"))
+        branch = _dept_to_branch(student.get("department"))
+        sheet_name = f"S{semester} {branch}".strip()
+        groups[sheet_name].append(student)
+        if sheet_name not in group_dept_name and student.get("department"):
+            group_dept_name[sheet_name] = student.get("department")
+
+    for sheet_key in list(groups.keys()):
+        if _normalize_sheet_name(sheet_key) in sheet_lookup:
+            continue
+        match = re.search(r"s\\s*(\\d+)\\s*([a-z]+)", sheet_key, re.IGNORECASE)
+        sem = match.group(1) if match else ""
+        branch = match.group(2).upper() if match else ""
+        base_sheet_name = base_sheets.get(branch) or default_sheet_name
+        if not base_sheet_name:
+            return JsonResponse({"error": "Template has no sheets to copy"}, status=500)
+        new_sheet = wb.copy_worksheet(wb[base_sheet_name])
+        new_sheet.title = sheet_key
+        _update_semester_text(new_sheet, sem)
+        _update_department_text(new_sheet, group_dept_name.get(sheet_key, ""))
+        sheet_lookup[_normalize_sheet_name(sheet_key)] = sheet_key
+
+    target_norms = {_normalize_sheet_name(name) for name in groups.keys()}
+    unused_template_sheets = [
+        name for name in wb.sheetnames
+        if _normalize_sheet_name(name) not in target_norms
+    ]
+    for name in unused_template_sheets:
+        if name in wb.sheetnames:
+            del wb[name]
+
+    sheets_to_delete = []
+    for sheet_key, students_list in groups.items():
+        sheet_name = sheet_lookup[_normalize_sheet_name(sheet_key)]
+        ws = wb[sheet_name]
+        header_row, col_map = _find_header(ws)
+        if not header_row:
+            return JsonResponse({
+                "error": f"Header row not found in sheet: {sheet_name}"
+            }, status=400)
+
+        data_start = header_row + 1
+        max_row = ws.max_row
+        for row_idx in range(data_start, max_row + 1):
+            for col_idx in col_map.values():
+                _set_cell_value(ws, row_idx, col_idx, None)
+
+        from collections import defaultdict
+        halls = defaultdict(list)
+        for student in students_list:
+            halls[student["hall"]].append(student)
+
+        current_row = data_start
+        sl_no = 1
+        for hall_name in sorted(halls.keys()):
+            hall_students = sorted(halls[hall_name], key=lambda s: _reg_sort_key(s["register_no"]))
+            for idx, student in enumerate(hall_students):
+                if "sl" in col_map:
+                    _set_cell_value(ws, current_row, col_map["sl"], sl_no)
+                if "name" in col_map:
+                    _set_cell_value(ws, current_row, col_map["name"], student["name"])
+                if "reg" in col_map:
+                    _set_cell_value(ws, current_row, col_map["reg"], student["register_no"])
+                if "hall" in col_map:
+                    hall_value = hall_name if idx == 0 else None
+                    _set_cell_value(ws, current_row, col_map["hall"], hall_value)
+                sl_no += 1
+                current_row += 1
+
+        if sl_no == 1:
+            sheets_to_delete.append(sheet_name)
+
+    for sheet_name in sheets_to_delete:
+        if sheet_name in wb.sheetnames:
+            del wb[sheet_name]
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{_export_branch_filename(exam)}"'
     wb.save(response)
     return response

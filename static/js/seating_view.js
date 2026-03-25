@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const btnPdf = document.getElementById("btn-pdf");
     const btnExcel = document.getElementById("btn-excel");
-    const btnPrint = document.getElementById("btn-print");
+    const btnBranchExcel = document.getElementById("btn-branch-excel");
 
     const modalOverlay = document.getElementById("modal-overlay");
     const modalName = document.getElementById("modal-name");
@@ -451,9 +451,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    if (btnPrint) {
-        btnPrint.addEventListener('click', () => {
-            window.print();
+    if (btnBranchExcel) {
+        btnBranchExcel.addEventListener('click', () => {
+            if (!currentExamId) return;
+            window.location = `/api/seating/export/branch-excel/?exam_id=${currentExamId}`;
         });
     }
 
