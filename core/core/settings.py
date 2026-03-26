@@ -114,6 +114,10 @@ LOGIN_URL = "/"
 
 pg_sslmode = os.getenv("PGSSLMODE", "")
 
+import os
+
+pg_sslmode = os.getenv("PGSSLMODE", "require")
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -121,10 +125,11 @@ DATABASES = {
         'USER': os.getenv("DB_USER"),
         'PASSWORD': os.getenv("DB_PASSWORD"),
         'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT"),
-        'OPTIONS': {"sslmode": pg_sslmode} if pg_sslmode else {},
-
-        'CONN_MAX_AGE': 600,  
+        'PORT': os.getenv("DB_PORT", "5432"),
+        'OPTIONS': {
+            "sslmode": pg_sslmode
+        },
+        'CONN_MAX_AGE': 600,
     }
 }
 
