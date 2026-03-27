@@ -112,26 +112,35 @@ WSGI_APPLICATION = 'core.wsgi.application'
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "/"
 
-pg_sslmode = os.getenv("PGSSLMODE", "")
 
+import dj_database_url
 import os
 
-pg_sslmode = os.getenv("PGSSLMODE")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT", "5432"),
-        'OPTIONS': {
-            "sslmode": pg_sslmode
-        } if pg_sslmode else {},
-        'CONN_MAX_AGE': 600,
+if DATABASE_URL:
+    # ✅ Production (Render)
+    DATABASES = {
+        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    # ✅ Local (your current setup)
+    pg_sslmode = os.getenv("PGSSLMODE")
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("DB_NAME"),
+            'USER': os.getenv("DB_USER"),
+            'PASSWORD': os.getenv("DB_PASSWORD"),
+            'HOST': os.getenv("DB_HOST"),
+            'PORT': os.getenv("DB_PORT", "5432"),
+            'OPTIONS': {
+                "sslmode": pg_sslmode
+            } if pg_sslmode else {},
+            'CONN_MAX_AGE': 600,
+        }
+    }
 
 
 # Password validation
