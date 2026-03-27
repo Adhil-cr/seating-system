@@ -116,7 +116,7 @@ pg_sslmode = os.getenv("PGSSLMODE", "")
 
 import os
 
-pg_sslmode = os.getenv("PGSSLMODE", "require")
+pg_sslmode = os.getenv("PGSSLMODE")
 
 DATABASES = {
     'default': {
@@ -128,7 +128,7 @@ DATABASES = {
         'PORT': os.getenv("DB_PORT", "5432"),
         'OPTIONS': {
             "sslmode": pg_sslmode
-        },
+        } if pg_sslmode else {},
         'CONN_MAX_AGE': 600,
     }
 }

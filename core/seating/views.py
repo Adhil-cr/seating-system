@@ -178,8 +178,16 @@ def generate_seating(request):
         )
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
-    except Exception:
-        return JsonResponse({"error": "Seating generation failed"}, status=500)
+    except Exception as e:
+        import traceback
+        print("\n\n===== ERROR START =====")
+        print(str(e))
+        traceback.print_exc()
+        print("===== ERROR END =====\n\n")
+
+        return JsonResponse({
+            "error": str(e)
+        }, status=500)
 
     # -----------------------------
     # STEP 2: Read algorithm output
