@@ -88,7 +88,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function normalizeHall(hall, defaultName) {
-        const cols = hall.cols || hall.columns || hall.col || hall.column || 0;
+        const seatsPerBench = hall.seats_per_bench || hall.seatsPerBench || hall.spb || 1;
+        const hasBenchCols = hall.bench_cols !== undefined || hall.benchCols !== undefined || hall.bench_columns !== undefined;
+        const rawCols = hall.cols || hall.columns || hall.col || hall.column || 0;
+        const benchCols = hall.bench_cols || hall.benchCols || hall.bench_columns || hall.columns || hall.col || hall.column || 0;
+        const cols = hasBenchCols ? rawCols : (rawCols * seatsPerBench);
         const rows = hall.rows || hall.row || 0;
         const seats = Array.isArray(hall.seats) ? hall.seats.map(seat => normalizeSeat(seat, cols)) : [];
         return {
@@ -96,7 +100,8 @@ document.addEventListener("DOMContentLoaded", function () {
             room: hall.room || hall.block || '',
             rows: rows,
             cols: cols,
-            seats_per_bench: hall.seats_per_bench || hall.seatsPerBench || hall.spb || 1,
+            bench_cols: benchCols || Math.ceil(cols / (seatsPerBench || 1)),
+            seats_per_bench: seatsPerBench,
             total_seats: hall.total_seats || (rows * cols),
             seats: seats
         };
@@ -235,7 +240,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (hallDesc) {
             const seatsPerBench = hall.seats_per_bench || 1;
-            hallDesc.textContent = `${hall.rows} rows · ${hall.cols} columns · ${seatsPerBench} seats/bench · ${hall.total_seats || (hall.rows * hall.cols)} seats`;
+            const benchCols = hall.bench_cols || Math.ceil((hall.cols || 0) / seatsPerBench);
+            hallDesc.textContent = `${hall.rows} rows · ${benchCols} benches/row · ${seatsPerBench} seats/bench · ${hall.total_seats || (hall.rows * hall.cols)} seats`;
         }
     }
 

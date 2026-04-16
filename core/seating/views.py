@@ -80,6 +80,43 @@ def _export_branch_filename(exam):
     return f"branchwise_{name}_{date}_{session}.xlsx"
 
 
+def _safe_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _effective_cols(bench_cols, seats_per_bench):
+    bench_cols = max(1, _safe_int(bench_cols, 1))
+    seats_per_bench = max(1, _safe_int(seats_per_bench, 1))
+    return bench_cols * seats_per_bench
+
+
+def _seat_display_position(seat, is_legacy_layout=False):
+    """
+    Return bench-aware row/col/seat_no for rendering and exports.
+    Legacy rows (saved with bench_cols only) are remapped at read time.
+    """
+    bench_cols = max(1, _safe_int(getattr(seat.hall, "columns", 1), 1))
+    seats_per_bench = max(1, _safe_int(getattr(seat.hall, "seats_per_bench", 1), 1))
+    effective_cols = _effective_cols(bench_cols, seats_per_bench)
+
+    stored_row = max(1, _safe_int(getattr(seat, "row", 1), 1))
+    stored_col = max(1, _safe_int(getattr(seat, "column", 1), 1))
+
+    if is_legacy_layout:
+        seat_index = (stored_row - 1) * bench_cols + stored_col
+        row_no = (seat_index - 1) // effective_cols + 1
+        col_no = (seat_index - 1) % effective_cols + 1
+    else:
+        row_no = stored_row
+        col_no = stored_col
+
+    seat_no = (row_no - 1) * effective_cols + col_no
+    return row_no, col_no, seat_no, bench_cols, seats_per_bench, effective_cols
+
+
 # -------------------------
 # PREVIEW SEATING
 # -------------------------
@@ -212,10 +249,10 @@ def generate_seating(request):
 
         seat_number = int(row["seat_number"])
 
-        column_count = hall.columns
+        effective_cols = _effective_cols(hall.columns, hall.seats_per_bench)
 
-        row_no = (seat_number - 1) // column_count + 1
-        column_no = (seat_number - 1) % column_count + 1
+        row_no = (seat_number - 1) // effective_cols + 1
+        column_no = (seat_number - 1) % effective_cols + 1
 
         student = Student.objects.filter(
             user=request.user,
@@ -292,6 +329,13 @@ def view_seating(request):
     subject_code_set = set(subject_codes)
 
     halls_data = {}
+    hall_legacy_layout = {}
+    for seat in seats:
+        hall_name = seat.hall.name
+        if hall_name not in hall_legacy_layout:
+            hall_legacy_layout[hall_name] = False
+        if _safe_int(seat.row, 1) > _safe_int(seat.hall.rows, 1):
+            hall_legacy_layout[hall_name] = True
 
     for seat in seats:
 
@@ -312,11 +356,15 @@ def view_seating(request):
             subjects = [str(seat.student.subject_code)]
         subjects = [str(code).strip().replace(".0", "") for code in subjects if str(code).strip()]
         subjects_str = ", ".join(sorted(set(subjects)))
+        row_no, col_no, seat_no, _, _, _ = _seat_display_position(
+            seat,
+            hall_legacy_layout.get(hall_name, False),
+        )
 
         halls_data[hall_name]["seats"].append({
-            "seat_number": (seat.row - 1) * seat.hall.columns + seat.column,
-            "row": seat.row,
-            "col": seat.column,
+            "seat_number": seat_no,
+            "row": row_no,
+            "col": col_no,
             "register_no": seat.student.register_no,
             "student_name": seat.student.name,
             "department": seat.student.department,
@@ -338,9 +386,16 @@ def view_seating(request):
                 "hall_name": hall_name,
                 "room": "",
                 "rows": halls_data[hall_name]["rows"],
-                "cols": halls_data[hall_name]["columns"],
+                "bench_cols": halls_data[hall_name]["columns"],
+                "cols": _effective_cols(
+                    halls_data[hall_name]["columns"],
+                    halls_data[hall_name].get("seats_per_bench", 1),
+                ),
                 "seats_per_bench": halls_data[hall_name].get("seats_per_bench", 1),
-                "total_seats": halls_data[hall_name]["rows"] * halls_data[hall_name]["columns"],
+                "total_seats": halls_data[hall_name]["rows"] * _effective_cols(
+                    halls_data[hall_name]["columns"],
+                    halls_data[hall_name].get("seats_per_bench", 1),
+                ),
                 "seats": halls_data[hall_name]["seats"],
             }
             for hall_name in sorted(halls_data.keys())
@@ -398,6 +453,14 @@ def export_pdf(request):
         subject_codes = list(exam.subjects.values_list("code", flat=True))
     subject_codes = [str(code).strip().replace(".0", "") for code in subject_codes if str(code).strip()]
 
+    hall_legacy_layout = {}
+    for seat in seats:
+        hall_name = seat.hall.name
+        if hall_name not in hall_legacy_layout:
+            hall_legacy_layout[hall_name] = False
+        if _safe_int(seat.row, 1) > _safe_int(seat.hall.rows, 1):
+            hall_legacy_layout[hall_name] = True
+
     # EXPORT: deduplicate seats and collect subjects
     seen = {}
     for seat in seats:
@@ -409,12 +472,15 @@ def export_pdf(request):
             subj_list = list(subj_qs.values_list("code", flat=True))
             if not subj_list and seat.student.subject_code:
                 subj_list = [str(seat.student.subject_code)]
-            seat_no = (seat.row - 1) * seat.hall.columns + seat.column
+            row_no, col_no, seat_no, _, _, _ = _seat_display_position(
+                seat,
+                hall_legacy_layout.get(seat.hall.name, False),
+            )
             seen[reg] = {
                 "hall": seat.hall.name,
                 "seat_no": seat_no,
-                "row": seat.row,
-                "col": seat.column,
+                "row": row_no,
+                "col": col_no,
                 "register_no": reg,
                 "student_name": seat.student.name,
                 "department": seat.student.department,
@@ -806,6 +872,14 @@ def export_excel(request):
         subject_codes = list(exam.subjects.values_list("code", flat=True))
     subject_codes = [str(code).strip().replace(".0", "") for code in subject_codes if str(code).strip()]
 
+    hall_legacy_layout = {}
+    for seat in seats:
+        hall_name = seat.hall.name
+        if hall_name not in hall_legacy_layout:
+            hall_legacy_layout[hall_name] = False
+        if _safe_int(seat.row, 1) > _safe_int(seat.hall.rows, 1):
+            hall_legacy_layout[hall_name] = True
+
     # EXPORT: deduplicate seats and collect subjects
     seen = {}
     for seat in seats:
@@ -817,12 +891,15 @@ def export_excel(request):
             subj_list = list(subj_qs.values_list("code", flat=True))
             if not subj_list and seat.student.subject_code:
                 subj_list = [str(seat.student.subject_code)]
-            seat_no = (seat.row - 1) * seat.hall.columns + seat.column
+            row_no, col_no, seat_no, _, _, _ = _seat_display_position(
+                seat,
+                hall_legacy_layout.get(seat.hall.name, False),
+            )
             seen[reg] = {
                 "hall": seat.hall.name,
                 "seat_no": seat_no,
-                "row": seat.row,
-                "col": seat.column,
+                "row": row_no,
+                "col": col_no,
                 "register_no": reg,
                 "student_name": seat.student.name,
                 "department": seat.student.department,
