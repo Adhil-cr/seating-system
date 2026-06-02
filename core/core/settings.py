@@ -80,14 +80,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# DATABASE
+# DATABASE CONFIGURATION
+
 DATABASE_URL = os.getenv("DATABASE_URL")
+USE_SQLITE = os.getenv("USE_SQLITE", "False") == "True"
 
 if DATABASE_URL:
+    # Production / cloud deployment
     DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600
+        )
     }
+
+elif USE_SQLITE:
+    # Standalone executable deployment
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "examcell.sqlite3",
+        }
+    }
+
 else:
+    # Local PostgreSQL development
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -99,7 +116,7 @@ else:
             'CONN_MAX_AGE': 600,
         }
     }
-
+    
 # AUTH
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "/"
