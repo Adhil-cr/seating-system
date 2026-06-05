@@ -176,11 +176,26 @@ else:
     )
 
 # MEDIA
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.getenv('MEDIA_ROOT', str(PROJECT_DIR / 'media'))
+MEDIA_URL = "/media/"
+
+if USE_SQLITE and getattr(sys, "frozen", False):
+    MEDIA_ROOT = str(
+        Path(sys.executable).parent / "media"
+    )
+else:
+    MEDIA_ROOT = os.getenv(
+        "MEDIA_ROOT",
+        str(PROJECT_DIR / "media")
+    )
 
 # BACKBLAZE (OPTIONAL)
-B2_STORAGE_ENABLED = os.getenv("B2_STORAGE_ENABLED", "false").lower() == "true"
+
+if USE_SQLITE:
+    B2_STORAGE_ENABLED = False
+else:
+    B2_STORAGE_ENABLED = (
+        os.getenv("B2_STORAGE_ENABLED", "false").lower() == "true"
+    )
 
 if B2_STORAGE_ENABLED:
     AWS_ACCESS_KEY_ID = os.getenv("B2_KEY_ID", "")
@@ -192,7 +207,9 @@ if B2_STORAGE_ENABLED:
     AWS_S3_ADDRESSING_STYLE = "path"
     AWS_QUERYSTRING_AUTH = False
 
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    DEFAULT_FILE_STORAGE = (
+        "storages.backends.s3boto3.S3Boto3Storage"
+    )
 
 # EMAIL
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")
