@@ -3,17 +3,33 @@ from dotenv import load_dotenv
 import os
 import dj_database_url
 
+
 load_dotenv()
 
+import sys
+from pathlib import Path
+
 # Paths
-CORE_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = CORE_DIR.parent
-BASE_DIR = CORE_DIR
+if getattr(sys, "frozen", False):
+    # Running from PyInstaller
+    PROJECT_DIR = Path(sys._MEIPASS)
+    CORE_DIR = PROJECT_DIR
+    BASE_DIR = PROJECT_DIR
+else:
+    # Running from source code
+    CORE_DIR = Path(__file__).resolve().parent.parent
+    PROJECT_DIR = CORE_DIR.parent
+    BASE_DIR = CORE_DIR
 
 # SECURITY
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me')
 
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
+
+# DATABASE CONFIGURATION
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+USE_SQLITE = os.getenv("USE_SQLITE", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv(
     "ALLOWED_HOSTS",
@@ -46,10 +62,8 @@ INSTALLED_APPS = [
     "seating",
     "dashboard",
 ]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -59,6 +73,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if not USE_SQLITE:
+    MIDDLEWARE.insert(
+        1,
+        'whitenoise.middleware.WhiteNoiseMiddleware'
+    )
+
 
 ROOT_URLCONF = 'core.urls'
 
@@ -82,8 +103,6 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # DATABASE CONFIGURATION
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-USE_SQLITE = os.getenv("USE_SQLITE", "False") == "True"
 
 if DATABASE_URL:
     # Production / cloud deployment
@@ -93,16 +112,21 @@ if DATABASE_URL:
             conn_max_age=600
         )
     }
-
 elif USE_SQLITE:
-    # Standalone executable deployment
+
+    if getattr(sys, "frozen", False):
+        db_path = Path(sys.executable).parent / "examcell.sqlite3"
+    else:
+        db_path = BASE_DIR / "examcell.sqlite3"
+
+    
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "examcell.sqlite3",
+            "NAME": db_path,
         }
     }
-
 else:
     # Local PostgreSQL development
     DATABASES = {
@@ -116,7 +140,7 @@ else:
             'CONN_MAX_AGE': 600,
         }
     }
-    
+
 # AUTH
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "/"
@@ -142,7 +166,14 @@ STATICFILES_DIRS = [
     PROJECT_DIR / "static",
 ]
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+if not USE_SQLITE:
+    STATICFILES_STORAGE = (
+        'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    )
+else:
+    STATICFILES_STORAGE = (
+        'django.contrib.staticfiles.storage.StaticFilesStorage'
+    )
 
 # MEDIA
 MEDIA_URL = '/media/'
