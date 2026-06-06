@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-
+from pathlib import Path
 from django.conf import settings
 
 from .algorithms.csv_normalizer import normalize_and_sort_csv
@@ -15,8 +15,12 @@ from students.models import Student, StorageArtifact
 
 def run_full_allocation_pipeline(exam, halls=None, max_subject_per_hall=None):
 
-    base_dir = settings.BASE_DIR
-    runtime_root = os.getenv("RUNTIME_DATA_ROOT", os.path.join(base_dir, "runtime_data"))
+    runtime_root = os.getenv("RUNTIME_DATA_ROOT")
+
+    if not runtime_root:
+        runtime_root = str(
+            Path.cwd() / "runtime_data"
+        )
 
     input_dir = os.path.join(runtime_root, "input")
     output_dir = os.path.join(runtime_root, "output")
