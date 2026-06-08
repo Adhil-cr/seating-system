@@ -32,3 +32,7 @@ core/runtime_data/
 build/
 dist/
 *.spec
+
+# Release artifacts
+Release/
+*.tar.gz
