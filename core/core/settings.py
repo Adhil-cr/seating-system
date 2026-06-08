@@ -224,3 +224,6 @@ if EMAIL_HOST:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Remove Django Warnings
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

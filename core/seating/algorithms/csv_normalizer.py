@@ -1,5 +1,3 @@
-print("PYTHON FILE LOADED")
-
 """
 Module: csv_normalizer.py
 
