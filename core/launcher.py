@@ -2,11 +2,15 @@ import os
 import threading
 import webbrowser
 from pathlib import Path
+import sys
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 os.environ["USE_SQLITE"] = "True"
 
-BASE_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+else:
+    BASE_DIR = Path(__file__).resolve().parent
 
 # Runtime paths
 os.environ["RUNTIME_DATA_ROOT"] = str(
