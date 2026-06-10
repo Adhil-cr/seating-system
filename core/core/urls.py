@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import path, include, reverse_lazy
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -36,5 +38,14 @@ urlpatterns = [
     path('seating/generate/', views.seating_generate_page, name="seating_generate"),
     path('seating/view/', views.seating_view_page, name="seating_view"),
     path('profile/', views.profile_page, name="profile"),
-
 ]
+
+urlpatterns += static(
+    settings.MEDIA_URL,
+    document_root=settings.MEDIA_ROOT
+)
+
+urlpatterns += static(
+    settings.STATIC_URL,
+    document_root=settings.PROJECT_DIR / "static"
+)
