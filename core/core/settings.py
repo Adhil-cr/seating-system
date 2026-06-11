@@ -158,35 +158,63 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# STATIC FILES
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STATICFILES_DIRS = [
-    PROJECT_DIR / "static",
-]
+# ==================================================
+# STATIC FILES
+# ==================================================
+
+STATIC_URL = "/static/"
+
+if getattr(sys, "frozen", False):
+
+    # PyInstaller bundle
+    STATICFILES_DIRS = [
+        Path(sys._MEIPASS) / "static"
+    ]
+
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+
+else:
+
+    # Development / Production
+    STATICFILES_DIRS = [
+        PROJECT_DIR / "static"
+    ]
+
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 if not USE_SQLITE:
     STATICFILES_STORAGE = (
-        'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        "whitenoise.storage.CompressedManifestStaticFilesStorage"
     )
 else:
     STATICFILES_STORAGE = (
-        'django.contrib.staticfiles.storage.StaticFilesStorage'
+        "django.contrib.staticfiles.storage.StaticFilesStorage"
     )
 
-# MEDIA
+# ==================================================
+# MEDIA FILES
+# ==================================================
+
 MEDIA_URL = "/media/"
 
-if USE_SQLITE and getattr(sys, "frozen", False):
+if getattr(sys, "frozen", False):
+    # Standalone desktop application
+
     MEDIA_ROOT = str(
-        Path(sys.executable).parent / "media"
+        Path(sys.executable).resolve().parent / "media"
     )
+
 else:
+    # Development / production
+
     MEDIA_ROOT = os.getenv(
         "MEDIA_ROOT",
         str(PROJECT_DIR / "media")
     )
+
+
 
 # BACKBLAZE (OPTIONAL)
 
