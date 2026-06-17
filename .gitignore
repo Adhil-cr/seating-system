@@ -31,7 +31,6 @@ core/runtime_data/
 # PyInstaller
 build/
 dist/
-*.spec
 
 # Release artifacts
 Release/
