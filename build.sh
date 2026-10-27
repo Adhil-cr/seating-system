@@ -9,6 +9,9 @@ pip install -r requirements.txt
 echo "==> Running database migrations..."
 python core/manage.py migrate --noinput
 
+echo "==> Seeding inspector demo account and data..."
+python core/manage.py seed_demo_data
+
 echo "==> Collecting static files..."
 python core/manage.py collectstatic --noinput
 

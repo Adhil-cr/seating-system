@@ -1,176 +1,172 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html>
 
-<head>
-    <!-- CHANGED: benchmap branding -->
-    <title>Dashboard — benchmap</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
-
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-
-<body>
-
-<div id="page-dashboard" class="page-container active">
-
-<div id="toast" class="toast hidden"></div>
-
-<div class="app">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-
-<!-- CHANGED: benchmap branding -->
-<div class="sb-brand">
-<div class="sb-logo-mark">
-<img src="{% static 'images/benchmap_logo.png' %}" alt="benchmap logo" class="sb-logo-img">
-</div>
-<div class="sb-brand-text">
-<span class="sb-brand-name">benchmap</span>
-<span class="sb-brand-tag">Seating system</span>
-</div>
-</div>
-
-<div class="menu-section">
-
-<p class="menu-title">MAIN</p>
-
-<a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
-<i data-lucide="bar-chart-3"></i>
-Dashboard
-</a>
-
-</div>
-
-
-<div class="menu-section">
-
-<p class="menu-title">STUDENT MANAGEMENT</p>
-
-<a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
-<i data-lucide="upload"></i>
-Upload Students
-</a>
-
-</div>
-
-
-<div class="menu-section">
-
-<p class="menu-title">EXAM MANAGEMENT</p>
-
-<a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
-<i data-lucide="building"></i>
-Exam & Hall Config
-</a>
-
-<a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
-<i data-lucide="settings"></i>
-Generate Seating
-</a>
-
-<a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
-<i data-lucide="eye"></i>
-View Seating
-</a>
-
-</div>
-
-
-<div class="menu-section">
-
-<p class="menu-title">ACCOUNT</p>
-
-<a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
-<i data-lucide="user"></i>
-User Profile
-</a>
-
-</div>
-
-</aside>
-
-    <!-- Main Section -->
-    <div class="main">
-
-        <!-- Header -->
-        <header class="header">
-
-            <!-- CHANGED: benchmap branding -->
-            <div class="header-left">
-                <span class="topbar-page-title">Dashboard</span>
+{% block content %}
+<div class="dashboard-page">
+    <!-- Inspector & Reviewer Showcase Panel -->
+    <div class="inspector-showcase-card">
+        <div class="showcase-header">
+            <div class="showcase-badge">
+                <i data-lucide="sparkles"></i>
+                <span>Inspector & Reviewer Showcase</span>
             </div>
-
-            <div class="header-right">
-                {% if request.user.is_authenticated %}
-                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-                {% else %}
-                    <span class="user-name">Guest</span>
-                {% endif %}
+            <span class="showcase-status-pill">
+                <span class="pulse-dot"></span>
+                Demo Environment Live
+            </span>
+        </div>
+        <div class="showcase-body">
+            <div class="showcase-info">
+                <h2>Seating Verification & Sample Files</h2>
+                <p>
+                    BenchMap optimizes examination seat allocation using anti-cheating subject interleaving.
+                    Reviewers can inspect the raw input candidate roster, view the real-time visual bench layout,
+                    or download the generated output matrices:
+                </p>
             </div>
-
-        </header>
-
-        <!-- Content -->
-        <main class="content">
-
-            <h2>Dashboard Overview</h2>
-
-            <div class="card-container">
-
-                <div class="dashboard-card">
-                    <h3>Total Students</h3>
-                    <p class="card-number" id="dash-total-students">{{ total_students }}</p>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Total Halls</h3>
-                    <p class="card-number" id="dash-total-halls">{{ total_halls }}</p>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Pending Allocations</h3>
-                    <p class="card-number" id="dash-pending">{{ pending_allocations }}</p>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>Last Seating Status</h3>
-                    <p class="card-status {{ last_status_class }}" id="dash-last-status">{{ last_status }}</p>
-                </div>
-
-            </div>
-
-            <h3 class="section-title">System Alerts</h3>
-
-            <div id="dashboard-alerts">
-                {% if alerts %}
-                    {% for alert in alerts %}
-                        <div class="alert {{ alert.level }}">
-                            {{ alert.message }}
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="alert success">
-                        No alerts.
+            <div class="showcase-actions-grid">
+                <a href="{% static 'samples/sample_raw_students_input.csv' %}" download class="showcase-action-card input-card">
+                    <div class="card-icon-wrap"><i data-lucide="file-input"></i></div>
+                    <div class="card-text-wrap">
+                        <span class="card-main-title">Download Input File</span>
+                        <span class="card-sub-title">Raw Students Roster (CSV)</span>
                     </div>
-                {% endif %}
+                    <i data-lucide="download" class="card-arrow-icon"></i>
+                </a>
+
+                <a href="{% static 'samples/sample_allocated_seating_output.csv' %}" download class="showcase-action-card output-card">
+                    <div class="card-icon-wrap"><i data-lucide="file-check-2"></i></div>
+                    <div class="card-text-wrap">
+                        <span class="card-main-title">Download Output File</span>
+                        <span class="card-sub-title">Allocated Seating Matrix (CSV)</span>
+                    </div>
+                    <i data-lucide="download" class="card-arrow-icon"></i>
+                </a>
+
+                <a href="{% url 'seating_view' %}" class="showcase-action-card viewer-card">
+                    <div class="card-icon-wrap"><i data-lucide="grid-3x3"></i></div>
+                    <div class="card-text-wrap">
+                        <span class="card-main-title">Interactive Seating Plan</span>
+                        <span class="card-sub-title">View Hall Grid & PDF/Excel Export</span>
+                    </div>
+                    <i data-lucide="arrow-right" class="card-arrow-icon"></i>
+                </a>
+
+                <a href="{% static 'samples/Formated_RawData_Template.xlsx' %}" download class="showcase-action-card template-card">
+                    <div class="card-icon-wrap"><i data-lucide="file-spreadsheet"></i></div>
+                    <div class="card-text-wrap">
+                        <span class="card-main-title">Download Sample Template</span>
+                        <span class="card-sub-title">Multi-Subject Format (.xlsx)</span>
+                    </div>
+                    <i data-lucide="download" class="card-arrow-icon"></i>
+                </a>
             </div>
-
-        </main>
-
+        </div>
     </div>
 
-</div>
-</div>
+    <!-- Quick Stats Grid -->
+    <div class="card-container">
+        <div class="dashboard-card stat-card-students">
+            <div class="stat-card-header">
+                <h3>Total Students</h3>
+                <div class="stat-icon-wrap"><i data-lucide="users"></i></div>
+            </div>
+            <p class="card-number" id="dash-total-students">{{ total_students|default:"0" }}</p>
+            <span class="stat-meta">Active candidate registrations</span>
+        </div>
 
-<!-- JS -->
-<script src="{% static 'js/app.js' %}"></script>
+        <div class="dashboard-card stat-card-halls">
+            <div class="stat-card-header">
+                <h3>Total Halls</h3>
+                <div class="stat-icon-wrap"><i data-lucide="building"></i></div>
+            </div>
+            <p class="card-number" id="dash-total-halls">{{ total_halls|default:"0" }}</p>
+            <span class="stat-meta">Configured examination venues</span>
+        </div>
+
+        <div class="dashboard-card stat-card-pending">
+            <div class="stat-card-header">
+                <h3>Pending Allocations</h3>
+                <div class="stat-icon-wrap"><i data-lucide="clock"></i></div>
+            </div>
+            <p class="card-number" id="dash-pending">{{ pending_allocations|default:"0" }}</p>
+            <span class="stat-meta">Exams awaiting seating runs</span>
+        </div>
+
+        <div class="dashboard-card stat-card-status">
+            <div class="stat-card-header">
+                <h3>Last Allocation</h3>
+                <div class="stat-icon-wrap"><i data-lucide="check-circle-2"></i></div>
+            </div>
+            <p class="card-status {{ last_status_class|default:'status-completed' }}" id="dash-last-status">
+                {{ last_status|default:"Completed" }}
+            </p>
+            <span class="stat-meta">Seating engine status</span>
+        </div>
+    </div>
+
+    <!-- Quick Workflow Steps -->
+    <div class="workflow-section">
+        <h3 class="section-title">
+            <i data-lucide="workflow"></i>
+            Allocation Workflow Steps
+        </h3>
+        <div class="workflow-grid">
+            <a href="{% url 'students_upload' %}" class="workflow-card">
+                <span class="workflow-step-num">Step 1</span>
+                <h4>Upload Students</h4>
+                <p>Upload raw candidate roster with register numbers, branch, and subject codes.</p>
+                <span class="workflow-link-action">Upload CSV <i data-lucide="chevron-right"></i></span>
+            </a>
+            <a href="{% url 'exam_config' %}" class="workflow-card">
+                <span class="workflow-step-num">Step 2</span>
+                <h4>Halls & Exam Setup</h4>
+                <p>Define hall row x column capacities and schedule examination sessions.</p>
+                <span class="workflow-link-action">Configure <i data-lucide="chevron-right"></i></span>
+            </a>
+            <a href="{% url 'seating_generate' %}" class="workflow-card">
+                <span class="workflow-step-num">Step 3</span>
+                <h4>Generate Seating</h4>
+                <p>Execute anti-cheating interleaved allocation algorithm across selected halls.</p>
+                <span class="workflow-link-action">Run Engine <i data-lucide="chevron-right"></i></span>
+            </a>
+            <a href="{% url 'seating_view' %}" class="workflow-card">
+                <span class="workflow-step-num">Step 4</span>
+                <h4>View & Export</h4>
+                <p>Inspect visual bench map with color-coded branches and export to PDF / Excel.</p>
+                <span class="workflow-link-action">View Plans <i data-lucide="chevron-right"></i></span>
+            </a>
+        </div>
+    </div>
+
+    <!-- System Alerts -->
+    <div class="alerts-section">
+        <h3 class="section-title">
+            <i data-lucide="bell"></i>
+            System Status & Alerts
+        </h3>
+        <div id="dashboard-alerts">
+            {% if alerts %}
+                {% for alert in alerts %}
+                    <div class="alert {{ alert.level }}">
+                        <i data-lucide="info"></i>
+                        <span>{{ alert.message }}</span>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert success">
+                    <i data-lucide="check-circle-2"></i>
+                    <span>All services operational. Ready for exam seating allocation.</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}"></script>
-</body>
-</html>
+{% endblock %}

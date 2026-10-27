@@ -1,329 +1,222 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html>
 
-<head>
-    <!-- CHANGED: benchmap branding -->
-    <title>Generate seating — benchmap</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
+{% block title %}Generate seating{% endblock %}
+{% block page_title %}Generate Seating Allocation{% endblock %}
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% block head %}
+<style>
+    .generate-container {
+        max-width: 800px;
+    }
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    .generate-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 24px;
+        border: 0.5px solid rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
 
-    <style>
-        .alloc-modal {
-            position: fixed;
-            inset: 0;
-            z-index: 200;
-            display: none;
-        }
-        .alloc-modal.open {
-            display: block;
-        }
-        .alloc-modal-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.35);
-        }
-        .alloc-modal-card {
-            position: relative;
-            background: #fff;
-            border-radius: 14px;
-            width: min(520px, 92vw);
-            margin: 10vh auto 0;
-            padding: 20px;
-            border: 0.5px solid rgba(0,0,0,.12);
-            box-shadow: 0 20px 60px rgba(0,0,0,.2);
-        }
-        .alloc-modal-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #111;
-            margin-bottom: 6px;
-        }
-        .alloc-modal-sub {
-            font-size: 13px;
-            color: #6b6b6b;
-            margin-bottom: 12px;
-        }
-        .alloc-modal-hint {
-            background: #f8fafc;
-            border: 0.5px solid rgba(0,0,0,.08);
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #475569;
-            margin-bottom: 14px;
-        }
-        .alloc-modal-actions {
-            display: grid;
-            gap: 10px;
-        }
-        .alloc-modal-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 8px;
-        }
-        .alloc-modal-row input {
-            padding: 8px 10px;
-            border-radius: 8px;
-            border: 0.5px solid rgba(0,0,0,.2);
-            font-size: 13px;
-        }
-        .alloc-modal-btn {
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 0.5px solid rgba(0,0,0,.22);
-            background: #fff;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .alloc-modal-btn.primary {
-            background: #1e3a5f;
-            color: #fff;
-            border-color: #1e3a5f;
-        }
-        .alloc-modal-btn.primary:hover { background: #16304f; }
-        .alloc-modal-btn.ghost:hover { background: #f0efeb; }
-        .alloc-modal-error {
-            font-size: 12px;
-            color: #dc2626;
-            margin-top: 6px;
-        }
-        .alloc-modal-close {
-            position: absolute;
-            top: 10px;
-            right: 12px;
-            border: none;
-            background: transparent;
-            font-size: 18px;
-            cursor: pointer;
-            color: #6b6b6b;
-        }
-        .alloc-modal-subject {
-            font-weight: 600;
-            color: #111;
-        }
-        .alloc-modal-issue {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #FEF3C7;
-            color: #92400e;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 0.5px solid #FCD34D;
-        }
-        .alloc-modal-subjects {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 6px;
-        }
-        .alloc-subject-chip {
-            background: #E0F2FE;
-            color: #0369A1;
-            border: 0.5px solid #7DD3FC;
-            border-radius: 999px;
-            padding: 4px 8px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .alloc-subject-chip.danger {
-            background: #FEE2E2;
-            color: #991B1B;
-            border-color: #FCA5A5;
-        }
-        .alloc-modal-subject-count {
-            font-size: 12px;
-            color: #6b6b6b;
-            margin-top: 6px;
-        }
-        .alloc-modal-last {
-            font-size: 11px;
-            color: #6b6b6b;
-            margin-top: 6px;
-        }
-        .alloc-modal-rec {
-            font-size: 12px;
-            color: #1f2937;
-            margin-top: 6px;
-            font-weight: 600;
-        }
-        .alloc-modal-rec span {
-            color: #1e3a5f;
-        }
-        .alloc-modal-row .alloc-reset {
-            background: #f3f4f6;
-            color: #374151;
-            border-color: rgba(0,0,0,.12);
-        }
-        .alloc-modal-row .alloc-reset:hover {
-            background: #e5e7eb;
-        }
-    </style>
-</head>
+    .generate-form-group {
+        margin-bottom: 20px;
+    }
 
-<body>
+    .generate-form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 8px;
+    }
 
-<div class="app">
+    .generate-form-group select {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 14px;
+        background: #fff;
+    }
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    .hall-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
+        margin-top: 8px;
+    }
 
-<!-- CHANGED: benchmap branding -->
-<div class="sb-brand">
-<div class="sb-logo-mark">
-<img src="{% static 'images/benchmap_logo.png' %}" alt="benchmap logo" class="sb-logo-img">
-</div>
-<div class="sb-brand-text">
-<span class="sb-brand-name">benchmap</span>
-<span class="sb-brand-tag">Seating system</span>
-</div>
-</div>
+    .summary-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px;
+        margin: 20px 0;
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
 
-<div class="menu-section">
+    .summary-box p {
+        font-size: 14px;
+        color: #475569;
+        margin: 0;
+    }
 
-<p class="menu-title">MAIN</p>
+    .summary-box strong {
+        color: #0f172a;
+        font-size: 16px;
+    }
 
-<a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
-<i data-lucide="bar-chart-3"></i>
-Dashboard
-</a>
+    /* Modal dialog */
+    .alloc-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        display: none;
+    }
+    .alloc-modal.open {
+        display: block;
+    }
+    .alloc-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(2px);
+    }
+    .alloc-modal-card {
+        position: relative;
+        background: #fff;
+        border-radius: 16px;
+        width: min(520px, 92vw);
+        margin: 12vh auto 0;
+        padding: 24px;
+        border: 0.5px solid rgba(0,0,0,.12);
+        box-shadow: 0 25px 60px rgba(0,0,0,.25);
+    }
+    .alloc-modal-title {
+        font-size: 17px;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 6px;
+    }
+    .alloc-modal-sub {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+    .alloc-modal-hint {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #334155;
+        margin-bottom: 14px;
+    }
+    .alloc-modal-actions {
+        display: grid;
+        gap: 12px;
+    }
+    .alloc-modal-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+    }
+    .alloc-modal-row input {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 14px;
+    }
+    .alloc-modal-btn {
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+    }
+    .alloc-modal-btn.primary {
+        background: #4f46e5;
+        color: #fff;
+        border-color: #4f46e5;
+    }
+    .alloc-modal-btn.primary:hover { background: #4338ca; }
+    .alloc-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: #94a3b8;
+        cursor: pointer;
+    }
+    .alloc-modal-error {
+        font-size: 12px;
+        color: #dc2626;
+        margin-top: 6px;
+    }
+</style>
+{% endblock %}
 
-</div>
+{% block content %}
+<div class="generate-container">
+    <div class="generate-card">
+        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 6px; color: #0f172a;">Exam Seating Generation</h2>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">
+            Select an exam session and examination halls to execute anti-cheating subject-interleaved seat allocation.
+        </p>
 
+        <div class="generate-form-group">
+            <label for="exam-select">Select Exam Session</label>
+            <select id="exam-select"></select>
+        </div>
 
-<div class="menu-section">
+        <div class="generate-form-group">
+            <label>Select Examination Halls</label>
+            <div id="hall-list" class="hall-list"></div>
+        </div>
 
-<p class="menu-title">STUDENT MANAGEMENT</p>
+        <div id="student-count" class="capacity-text" style="font-size: 13px; color: #475569; margin-top: 8px;">
+            Total Students for Exam: 0
+        </div>
 
-<a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
-<i data-lucide="upload"></i>
-Upload Students
-</a>
+        <div class="summary-box">
+            <p>Total Registered Students: <strong id="total-students">0</strong></p>
+            <p>Total Available Hall Seats: <strong id="total-seats">0</strong></p>
+        </div>
 
-</div>
-
-
-<div class="menu-section">
-
-<p class="menu-title">EXAM MANAGEMENT</p>
-
-<a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
-<i data-lucide="building"></i>
-Exam & Hall Config
-</a>
-
-<a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
-<i data-lucide="settings"></i>
-Generate Seating
-</a>
-
-<a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
-<i data-lucide="eye"></i>
-View Seating
-</a>
-
-</div>
-
-
-<div class="menu-section">
-
-<p class="menu-title">ACCOUNT</p>
-
-<a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
-<i data-lucide="user"></i>
-User Profile
-</a>
-
-</div>
-
-</aside>
-    <!-- Main Section -->
-    <div class="main">
-
-        <!-- Header -->
-        <header class="header">
-
-            <div class="header-left">
-                <!-- CHANGED: benchmap branding -->
-                <span class="topbar-page-title">Generate seating</span>
-            </div>
-
-            <div class="header-right">
-                {% if request.user.is_authenticated %}
-                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-                {% else %}
-                    <span class="user-name">Guest</span>
-                {% endif %}
-            </div>
-
-        </header>
-
-
-        <!-- Content -->
-        <main class="content">
-
-            <h2>Seating Generation</h2>
-
-            <div class="generate-card">
-
-                <div class="exam-row">
-                    <label>Select Exam</label>
-                    <select id="exam-select"></select>
-                </div>
-
-                <div>
-                    <label>Select Halls</label>
-                    <div id="hall-list" class="hall-list"></div>
-                </div>
-
-                <div id="student-count" class="capacity-text">Total Students: 0</div>
-
-                <div class="summary-box">
-                    <p>Total Students: <strong id="total-students">0</strong></p>
-                    <p>Total Available Seats: <strong id="total-seats">0</strong></p>
-                </div>
-
-                <button id="generate-btn" class="btn-primary generate-btn">
-                    Generate Seating
-                </button>
-
-            </div>
-        </main>
-
+        <button id="generate-btn" class="btn-primary generate-btn" style="width: 100%; justify-content: center; padding: 12px 20px;">
+            <i data-lucide="cpu"></i>
+            <span>Execute Seating Allocation</span>
+        </button>
     </div>
-
 </div>
 
-<!-- Allocation failure modal -->
+<!-- Allocation Failure / Retry Modal -->
 <div id="alloc-modal" class="alloc-modal">
     <div class="alloc-modal-backdrop" data-close="true"></div>
     <div class="alloc-modal-card">
         <button class="alloc-modal-close" id="alloc-modal-close">×</button>
-        <div class="alloc-modal-title">Seating could not be generated</div>
+        <div class="alloc-modal-title">Seating limit adjustment needed</div>
         <div class="alloc-modal-sub" id="alloc-modal-sub">
             The subject-per-hall limit is too strict for <span class="alloc-modal-subject" id="alloc-modal-subject">—</span>.
         </div>
         <div class="alloc-modal-hint alloc-modal-issue" id="alloc-modal-issue">
-            Seating allocation failed. Please review the subject distribution limit.
+            Review the maximum candidate distribution limit across halls.
         </div>
         <div class="alloc-modal-hint" id="alloc-modal-subjects"></div>
         <div class="alloc-modal-subject-count" id="alloc-modal-subject-count"></div>
         <div class="alloc-modal-actions">
             <div class="alloc-modal-row">
                 <input type="number" id="alloc-modal-limit" min="1" placeholder="Max students per hall (subject)">
-                <button class="alloc-modal-btn primary" id="alloc-modal-apply">Retry with limit</button>
+                <button class="alloc-modal-btn primary" id="alloc-modal-apply">Retry Allocation</button>
             </div>
             <div class="alloc-modal-row" style="grid-template-columns:auto auto;justify-content:flex-end">
-                <button class="alloc-modal-btn alloc-reset" id="alloc-modal-reset">Reset limit</button>
+                <button class="alloc-modal-btn alloc-reset" id="alloc-modal-reset">Reset Limit</button>
             </div>
             <div class="alloc-modal-last" id="alloc-modal-last"></div>
             <div class="alloc-modal-rec" id="alloc-modal-rec"></div>
@@ -332,10 +225,8 @@ User Profile
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- JS -->
-<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}
 <script src="{% static 'js/seating_generate.js' %}"></script>
-
-</body>
-</html>
+{% endblock %}

@@ -1,62 +1,103 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
-    <head>
-        <!-- CHANGED: benchmap branding -->
-        <title>Sign in — benchmap</title>
-        <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
-        <link rel="stylesheet" href="{% static 'css/main.css' %}">
-    </head>
-    <body class="auth-page">
-        <div class="auth-shell">
-            <div class="auth-info">
-                <span class="auth-highlight">Exam Seating System</span>
-                <h1>Welcome back to the allocation dashboard</h1>
-                <p>
-                    Log in to manage exams, halls, and seating assignments in one
-                    streamlined workspace.
-                </p>
-            </div>
-            <div class="auth-card">
-                <!-- CHANGED: benchmap branding -->
-                <div class="auth-brand">
-                    <div class="auth-logo-wrap">
-                        <img src="{% static 'images/benchmap_logo.png' %}"
-                             alt="benchmap"
-                             class="auth-logo-img">
-                    </div>
-                    <h1 class="auth-brand-name">benchmap</h1>
-                    <p class="auth-brand-sub">Exam seating allocation system</p>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in — benchmap</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="auth-page">
+    <div class="auth-shell">
+        <div class="auth-info">
+            <span class="auth-highlight">Exam Seating Automation</span>
+            <h1>Welcome to the BenchMap Allocation System</h1>
+            <p>
+                Automate exam seating arrangements with anti-cheating interleaved allocations,
+                dynamic hall management, and instant PDF/Excel exports.
+            </p>
+
+            <!-- Inspector Demo Showcase Card (Desktop & Tablet) -->
+            <div class="demo-access-card">
+                <div class="demo-badge">
+                    <span class="demo-pulse"></span>
+                    <span>Inspector & Reviewer Demo</span>
                 </div>
-
-                <h2>Welcome Back</h2>
-                <p class="auth-subtitle">Login to continue</p>
-
-                <form id="login-form">
-                    <label>Username or Email</label>
-                    <input id="login-username" type="text" placeholder="Enter username or email">
-
-                    <label>Password</label>
-                    <input id="login-password" type="password" placeholder="Enter password">
-
-                    <div class="auth-options">
-                        <label class="remember">
-                            <input type="checkbox">
-                            Remember me
-                        </label>
-                    </div>
-
-                    <button class="btn-primary full-width" type="submit">
-                        Login
-                    </button>
-                </form>
-
-                <p class="auth-footer">
-                    Don't have an account?
-                    <a href="{% url 'signup' %}">Sign up</a>
+                <p class="demo-desc">
+                    Visiting from a resume or review? Use our pre-seeded admin account to explore sample students, configured halls, and generated seating allocations:
                 </p>
+                <div class="demo-credentials">
+                    <div class="cred-item">
+                        <span class="cred-label">Username:</span>
+                        <code class="cred-value" id="demo-user-val">admin</code>
+                    </div>
+                    <div class="cred-item">
+                        <span class="cred-label">Password:</span>
+                        <code class="cred-value" id="demo-pass-val">admin123</code>
+                    </div>
+                </div>
+                <button type="button" id="btn-quick-demo" class="btn-demo-login">
+                    <i data-lucide="zap"></i>
+                    <span>1-Click Inspector Login</span>
+                </button>
             </div>
         </div>
-        <script src="{% static 'js/login.js' %}"></script>
-    </body>
+
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="auth-logo-wrap">
+                    <img src="{% static 'images/benchmap_logo.png' %}"
+                         alt="benchmap"
+                         class="auth-logo-img">
+                </div>
+                <h1 class="auth-brand-name">benchmap</h1>
+                <p class="auth-brand-sub">Exam seating allocation system</p>
+            </div>
+
+            <h2>Sign In</h2>
+            <p class="auth-subtitle">Log in to your workspace</p>
+
+            <!-- Mobile quick demo button if screen is small -->
+            <div class="mobile-demo-banner">
+                <button type="button" id="btn-quick-demo-mobile" class="btn-demo-login-mobile">
+                    <i data-lucide="zap"></i>
+                    <span>Log in as Demo Inspector (admin)</span>
+                </button>
+            </div>
+
+            <form id="login-form">
+                <label for="login-username">Username or Email</label>
+                <input id="login-username" type="text" placeholder="e.g. admin or your email" autocomplete="username" required>
+
+                <label for="login-password">Password</label>
+                <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+
+                <div class="auth-options">
+                    <label class="remember">
+                        <input type="checkbox" id="remember-me" checked>
+                        <span>Remember me</span>
+                    </label>
+                </div>
+
+                <button class="btn-primary full-width" type="submit" id="btn-login-submit">
+                    <span id="login-btn-text">Sign In</span>
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                Don't have an account?
+                <a href="{% url 'signup' %}">Create Account</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="{% static 'js/login.js' %}"></script>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+</body>
 </html>

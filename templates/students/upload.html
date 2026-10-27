@@ -1,227 +1,207 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html>
 
-<head>
-    <!-- CHANGED: benchmap branding -->
-    <title>Upload students — benchmap</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/benchmap_logo.png' %}">
+{% block title %}Upload students{% endblock %}
+{% block page_title %}Upload Student Roster{% endblock %}
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% block head %}
+<style>
+    .upload-page-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    .upload-card-wrapper {
+        background: #fff;
+        border-radius: 14px;
+        padding: 24px;
+        border: 0.5px solid rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
 
-    <style>
-        .empty-card {
-            background: #fff;
-            border: 0.5px dashed rgba(0,0,0,.18);
-            border-radius: 10px;
-            padding: 14px 16px;
-            font-size: 12px;
-            color: #6b6b6b;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .empty-card strong {
-            font-size: 13px;
-            color: #111;
-        }
-        .upload-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-            font-size: 12px;
-        }
-        .upload-table th,
-        .upload-table td {
-            padding: 8px 10px;
-            border-bottom: 0.5px solid rgba(0,0,0,.08);
-            text-align: left;
-        }
-        .upload-table th {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #6b6b6b;
-            background: #f7f7f7;
-        }
-        .file-info {
-            margin-top: 6px;
-            font-size: 12px;
-            color: #1e3a5f;
-        }
-        .format-list {
-            margin: 6px 0 0 18px;
-            padding: 0;
-        }
-        .format-list li {
-            margin: 4px 0;
-        }
-    </style>
-</head>
+    .upload-dropzone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 36px 20px;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
 
-<body>
+    .upload-dropzone:hover, .upload-dropzone.dragover {
+        border-color: #4f46e5;
+        background: #eef2ff;
+    }
 
-<div class="app">
+    .upload-dropzone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    .dropzone-icon {
+        width: 48px;
+        height: 48px;
+        color: #6366f1;
+        margin: 0 auto 12px;
+    }
 
-<!-- CHANGED: benchmap branding -->
-<div class="sb-brand">
-<div class="sb-logo-mark">
-<img src="{% static 'images/benchmap_logo.png' %}" alt="benchmap logo" class="sb-logo-img">
-</div>
-<div class="sb-brand-text">
-<span class="sb-brand-name">benchmap</span>
-<span class="sb-brand-tag">Seating system</span>
-</div>
-</div>
+    .dropzone-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
 
-<div class="menu-section">
+    .dropzone-sub {
+        font-size: 13px;
+        color: #64748b;
+    }
 
-<p class="menu-title">MAIN</p>
+    .upload-action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
 
-<a class="menu-item" data-page="dashboard" href="{% url 'dashboard' %}">
-<i data-lucide="bar-chart-3"></i>
-Dashboard
-</a>
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 12px;
+        border-radius: 8px;
+        border: 0.5px solid rgba(0,0,0,0.08);
+    }
 
-</div>
+    .upload-table {
+        width: 100%;
+        min-width: 580px;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
 
+    .upload-table th, .upload-table td {
+        padding: 10px 14px;
+        border-bottom: 0.5px solid rgba(0,0,0,0.06);
+        text-align: left;
+    }
 
-<div class="menu-section">
+    .upload-table th {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        background: #f8fafc;
+    }
 
-<p class="menu-title">STUDENT MANAGEMENT</p>
+    .file-selected-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-top: 12px;
+    }
+</style>
+{% endblock %}
 
-<a class="menu-item" data-page="students" href="{% url 'students_upload' %}">
-<i data-lucide="upload"></i>
-Upload Students
-</a>
+{% block content %}
+<div class="upload-page-grid">
+    <div class="upload-card-wrapper">
+        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 6px; color: #0f172a;">Student Roster Upload</h2>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
+            Upload your CSV file containing student registration numbers, branch, semester, and course subject codes.
+        </p>
 
-</div>
+        <div class="upload-dropzone" id="dropzone">
+            <input type="file" id="csv-file" accept=".csv">
+            <i data-lucide="upload-cloud" class="dropzone-icon"></i>
+            <p class="dropzone-title">Drag & drop candidate CSV here or click to browse</p>
+            <p class="dropzone-sub">Supports standard comma-separated format (.csv)</p>
+        </div>
 
+        <div id="file-info" class="file-info"></div>
 
-<div class="menu-section">
-
-<p class="menu-title">EXAM MANAGEMENT</p>
-
-<a class="menu-item" data-page="config" href="{% url 'exam_config' %}">
-<i data-lucide="building"></i>
-Exam & Hall Config
-</a>
-
-<a class="menu-item" data-page="generate" href="{% url 'seating_generate' %}">
-<i data-lucide="settings"></i>
-Generate Seating
-</a>
-
-<a class="menu-item" data-page="viewer" href="{% url 'seating_view' %}">
-<i data-lucide="eye"></i>
-View Seating
-</a>
-
-</div>
-
-
-<div class="menu-section">
-
-<p class="menu-title">ACCOUNT</p>
-
-<a class="menu-item profile" data-page="profile" href="{% url 'profile' %}">
-<i data-lucide="user"></i>
-User Profile
-</a>
-
-</div>
-
-</aside>
-
-
-    <!-- Main Section -->
-    <div class="main">
-
-        <!-- Header -->
-        <header class="header">
-
-            <div class="header-left">
-                <!-- CHANGED: benchmap branding -->
-                <span class="topbar-page-title">Upload students</span>
+        <div class="upload-action-bar">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="upload-btn" class="btn-primary">
+                    <i data-lucide="upload"></i>
+                    <span>Upload CSV Roster</span>
+                </button>
+                <a class="btn-secondary" href="{% static 'samples/Formated_RawData_Template.xlsx' %}" download>
+                    <i data-lucide="file-spreadsheet"></i>
+                    <span>Download Excel Template</span>
+                </a>
             </div>
-
-            <div class="header-right">
-                {% if request.user.is_authenticated %}
-                    <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-                {% else %}
-                    <span class="user-name">Guest</span>
-                {% endif %}
-            </div>
-
-        </header>
-
-
-        <!-- Content -->
-        <main class="content">
-
-            <h2>Student Data Management</h2>
-
-            <div class="upload-section">
-
-                <h3>Upload Student CSV</h3>
-
-                <div class="upload-box">
-                    <input type="file" id="csv-file">
-                    <p>Drag & drop CSV file here or click to upload</p>
-                </div>
-                <div id="file-info" class="file-info"></div>
-
-                <div class="upload-actions">
-                    <button id="upload-btn" class="btn-primary">Upload CSV</button>
-                    <a class="btn-secondary" href="{% static 'samples/Formated_RawData_Template.xlsx' %}" download>Download Sample Template</a>
-                </div>
-                <div id="upload-status" class="capacity-text"></div>
-
-            </div>
-
-            <h3 class="section-title">How to format raw data</h3>
-            <div class="empty-card">
-                <strong>Use the sample template headers exactly</strong>
-                <ul class="format-list">
-                    <li>Remove the leading <code>#</code> column from the raw export.</li>
-                    <li>Save as a standard comma-separated CSV (the raw file mixes <code>;</code> in the header and <code>,</code> in rows).</li>
-                    <li>Fill subject codes into <code>Sub1</code> to <code>Sub13</code> and leave unused columns blank.</li>
-                    <li>Keep subject codes as plain values (no trailing <code>.0</code>, no extra spaces).</li>
-                </ul>
-            </div>
-
-
-            <h3 class="section-title">Preview</h3>
-            <div id="preview-empty" class="empty-card">
-                <strong>No preview yet</strong>
-                <span>Upload a CSV to see the first 10 rows here.</span>
-            </div>
-            <div id="csv-preview"></div>
-
-            <h3 class="section-title">Upload History</h3>
-            <div id="history-empty" class="empty-card">
-                <strong>No uploads yet</strong>
-                <span>Your recent CSV uploads will appear here.</span>
-            </div>
-            <div id="upload-history"></div>
-
-        </main>
-
+            <a class="btn-ghost" href="{% static 'samples/sample_raw_students_input.csv' %}" download style="font-size: 12px; color: #4f46e5; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                <i data-lucide="download"></i> Download Sample CSV
+            </a>
+        </div>
+        <div id="upload-status" class="capacity-text" style="margin-top: 12px;"></div>
     </div>
 
+    <!-- Format Guide -->
+    <div class="upload-card-wrapper">
+        <h3 class="section-title" style="margin-bottom: 12px;">
+            <i data-lucide="info"></i>
+            How to Format Candidate CSV
+        </h3>
+        <div class="empty-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;">
+            <ul class="format-list" style="margin-left: 20px; font-size: 13px; color: #334155; line-height: 1.6;">
+                <li>Ensure the header contains: <code>Register No</code>, <code>Student Name</code>, <code>Branch</code>, <code>Semester</code>, and <code>Sub1</code>...<code>Sub13</code>.</li>
+                <li>Save as standard comma-separated CSV format (UTF-8).</li>
+                <li>Subject codes should be clean text (e.g., <code>2021</code>, <code>4031</code>) without extra spaces or trailing decimals.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="upload-card-wrapper">
+        <h3 class="section-title" style="margin-bottom: 12px;">
+            <i data-lucide="table"></i>
+            Uploaded File Preview
+        </h3>
+        <div id="preview-empty" class="empty-card" style="padding: 20px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 10px;">
+            <strong>No preview available</strong>
+            <p style="font-size: 13px; margin-top: 4px;">Select or drop a CSV file above to preview the first 10 candidate rows.</p>
+        </div>
+        <div class="table-responsive">
+            <div id="csv-preview"></div>
+        </div>
+    </div>
+
+    <!-- Upload History -->
+    <div class="upload-card-wrapper">
+        <h3 class="section-title" style="margin-bottom: 12px;">
+            <i data-lucide="history"></i>
+            Upload History
+        </h3>
+        <div id="history-empty" class="empty-card" style="padding: 20px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 10px;">
+            <strong>No previous uploads recorded</strong>
+            <p style="font-size: 13px; margin-top: 4px;">Recent student dataset uploads will be listed here.</p>
+        </div>
+        <div class="table-responsive">
+            <div id="upload-history"></div>
+        </div>
+    </div>
 </div>
+{% endblock %}
 
-
-<!-- JS -->
-<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}
 <script src="{% static 'js/students_upload.js' %}"></script>
-
-</body>
-</html>
+{% endblock %}

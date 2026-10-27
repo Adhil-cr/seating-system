@@ -248,7 +248,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // SECTION: Render Seat Grid
     function renderSeatGrid(hall, examMeta) {
         seatGrid.innerHTML = '';
-        seatGrid.style.gridTemplateColumns = `repeat(${hall.cols}, minmax(0, 1fr))`;
+        seatGrid.style.gridTemplateColumns = `repeat(${hall.cols}, minmax(130px, 1fr))`;
 
         const seatMap = {};
         hall.seats.forEach(seat => {
