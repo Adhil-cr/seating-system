@@ -66,14 +66,26 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    f"http://{host}"
-    for host in ALLOWED_HOSTS
-    if host not in ["127.0.0.1", "localhost"]
-]
+# Support explicit CSRF_TRUSTED_ORIGINS and auto-generate https:// and http:// for ALLOWED_HOSTS
+_csrf_env = os.getenv("CSRF_TRUSTED_ORIGINS")
+if _csrf_env:
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip()
+        for origin in _csrf_env.split(",")
+        if origin.strip()
+    ]
+else:
+    CSRF_TRUSTED_ORIGINS = []
+    for host in ALLOWED_HOSTS:
+        h = host.strip()
+        if h and h not in ["127.0.0.1", "localhost", "*"]:
+            if not h.startswith("http://") and not h.startswith("https://"):
+                CSRF_TRUSTED_ORIGINS.append(f"https://{h}")
+                CSRF_TRUSTED_ORIGINS.append(f"http://{h}")
+            else:
+                CSRF_TRUSTED_ORIGINS.append(h)
 
-# TEMP for AWS (no HTTPS yet)
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
@@ -105,7 +117,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-if CLOUD and not USE_SQLITE:
+USE_WHITENOISE = env_bool("USE_WHITENOISE", CLOUD or not DEBUG)
+if USE_WHITENOISE and "whitenoise.middleware.WhiteNoiseMiddleware" not in MIDDLEWARE:
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 ROOT_URLCONF = "core.urls"
@@ -147,7 +160,8 @@ elif DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "600")),
+            ssl_require=env_bool("DB_SSL_REQUIRE", True),
         )
     }
 else:
@@ -197,11 +211,11 @@ STATICFILES_DIRS = [
 STATIC_ROOT = Path(
     os.getenv(
         "STATIC_ROOT",
-        str((APP_DIR if STANDALONE else BASE_DIR) / "staticfiles"),
+        str(APP_DIR / "staticfiles" if STANDALONE else PROJECT_DIR / "staticfiles"),
     )
 )
 
-if CLOUD and not USE_SQLITE:
+if USE_WHITENOISE:
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 else:
     STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"

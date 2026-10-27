@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: benchmap
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn --chdir core core.wsgi:application
+    healthCheckPath: /health/
+    envVars:
+      - key: EXAMCELL_MODE
+        value: cloud
+      - key: DEBUG
+        value: "false"
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_HOSTS
+        value: "benchmap.in,www.benchmap.in,.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://benchmap.in,https://www.benchmap.in,https://*.onrender.com"
+      - key: SECURE_SSL_REDIRECT
+        value: "false"

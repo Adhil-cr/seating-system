@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, get_user_model
 from django.contrib.auth.decorators import login_required
@@ -6,6 +7,11 @@ from students.models import Student
 from halls.models import Hall
 from exams.models import Exam
 from seating.models import SeatingAllocation
+
+
+def health_check(request):
+    """Ultra-fast, zero-db health check endpoint for keep-alive monitors and PaaS health checks."""
+    return JsonResponse({"status": "ok", "service": "ExamCell"}, status=200)
 
 
 @ensure_csrf_cookie
